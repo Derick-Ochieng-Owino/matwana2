@@ -1,0 +1,740 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Routes - Matwana</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #1e3c72;
+            --secondary-color: #2575fc;
+            --accent-color: #ff6b35;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --light-bg: #f8f9fa;
+            --dark-text: #2d3436;
+        }
+        
+        .route-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .route-card:hover {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transform: translateY(-5px);
+        }
+        
+        .route-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 15px;
+        }
+        
+        .route-body {
+            padding: 20px;
+        }
+        
+        .sacco-badge {
+            background: var(--accent-color);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .fare-badge {
+            background: var(--success-color);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        
+        .filter-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+        
+        .route-details {
+            border-top: 1px solid #e0e0e0;
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+            <div class="container">
+                <a class="navbar-brand fw-bold text-primary" href="{% url 'dashboard' %}">
+                    <i class="fas fa-bus me-2"></i>Matwana
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'dashboard' %}">
+                                <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{% url 'routes_list' %}">
+                                <i class="fas fa-route me-1"></i> Routes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'my_trips' %}">
+                                <i class="fas fa-history me-1"></i> My Trips
+                            </a>
+                        </li>
+                        {% if passenger %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle me-1"></i> {{ passenger.first_name }}
+                            </a>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" href="{% url 'dashboard' %}">
+                                    <i class="fas fa-user me-2"></i> Profile
+                                </a>
+                                <a class="dropdown-item" href="{% url 'top_up_wallet' %}">
+                                    <i class="fas fa-wallet me-2"></i> Wallet: KES {{ passenger.credits }}
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item text-danger" href="{% url 'logout' %}">
+                                    <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                </a>
+                            </div>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        
+        <div class="container">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <h1 class="fw-bold">
+                        <i class="fas fa-route text-primary me-2"></i>
+                        Available Routes
+                    </h1>
+                    <p class="text-muted">Find and book your preferred routes</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                    </a>
+                    <a href="{% url 'quick_book' %}" class="btn btn-primary">
+                        <i class="fas fa-bolt me-1"></i> Quick Book
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Stats -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h6>Total Routes</h6>
+                        <h2 class="fw-bold">{{ total_routes }}</h2>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h6>Active Saccos</h6>
+                        <h2 class="fw-bold">{{ saccos.count }}</h2>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h6>From Points</h6>
+                        <h2 class="fw-bold">{{ start_points|length }}</h2>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h6>To Points</h6>
+                        <h2 class="fw-bold">{{ end_points|length }}</h2>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="filter-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-filter text-primary me-2"></i>
+                    Filter Routes
+                </h5>
+                <form method="GET" action="{% url 'routes_list' %}">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">From (Start Point)</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   name="start_point" 
+                                   value="{{ start_point }}"
+                                   placeholder="e.g., CBD, Westlands"
+                                   list="startPoints">
+                            <datalist id="startPoints">
+                                {% for point in start_points %}
+                                <option value="{{ point }}">
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">To (End Point)</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   name="end_point" 
+                                   value="{{ end_point }}"
+                                   placeholder="e.g., Thika, Kikuyu"
+                                   list="endPoints">
+                            <datalist id="endPoints">
+                                {% for point in end_points %}
+                                <option value="{{ point }}">
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">SACCO</label>
+                            <select class="form-select" name="sacco">
+                                <option value="">All Saccos</option>
+                                {% for sacco in saccos %}
+                                <option value="{{ sacco.id }}" {% if sacco_id == sacco.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ sacco.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Min Fare (KES)</label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   name="min_fare" 
+                                   value="{{ min_fare }}"
+                                   placeholder="0"
+                                   min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Max Fare (KES)</label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   name="max_fare" 
+                                   value="{{ max_fare }}"
+                                   placeholder="1000"
+                                   min="0">
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-search me-1"></i> Apply Filters
+                            </button>
+                            <a href="{% url 'routes_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i> Clear Filters
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Routes List -->
+            {% if routes %}
+            <div class="row">
+                {% for route in routes %}
+                <div class="col-lg-4 col-md-6">
+                    <div class="route-card">
+                        <div class="route-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-0 fw-bold">{{ route.name }}</h5>
+                                <small class="opacity-75">
+                                    <i class="fas fa-clock me-1"></i>
+                                    {{ route.estimated_duration_minutes }} min
+                                </small>
+                            </div>
+                            <span class="fare-badge">KES {{ route.standard_fare }}</span>
+                        </div>
+                        
+                        <div class="route-body">
+                            <!-- Route Info -->
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-map-marker-alt text-danger me-2"></i>
+                                    <span class="fw-semibold">From:</span>
+                                    <span class="ms-2">{{ route.start_point }}</span>
+                                </div>
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="fas fa-map-marker-alt text-success me-2"></i>
+                                    <span class="fw-semibold">To:</span>
+                                    <span class="ms-2">{{ route.end_point }}</span>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">
+                                        <i class="fas fa-road me-1"></i>
+                                        {{ route.distance_km }} km
+                                    </span>
+                                    <span class="text-muted">
+                                        <i class="fas fa-bus me-1"></i>
+                                        {{ route.upcoming_trips_count }} trips
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <!-- Sacco Info -->
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="sacco-badge">
+                                    <i class="fas fa-building me-1"></i>
+                                    {{ route.sacco.name|default:"Matwana" }}
+                                </span>
+                                {% if route.upcoming_trips_count > 0 %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    Available
+                                </span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-clock me-1"></i>
+                                    No trips scheduled
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="route-details">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <button class="btn btn-outline-primary w-100" 
+                                                onclick="showRouteDetails({{ route.id }})">
+                                            <i class="fas fa-info-circle me-1"></i> Details
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        {% if passenger %}
+                                        <button class="btn btn-primary w-100" 
+                                                onclick="bookRoute({{ route.id }})"
+                                                {% if route.upcoming_trips_count == 0 %}disabled{% endif %}>
+                                            <i class="fas fa-ticket-alt me-1"></i> Book Now
+                                        </button>
+                                        {% else %}
+                                        <a href="{% url 'login' %}" class="btn btn-primary w-100">
+                                            <i class="fas fa-sign-in-alt me-1"></i> Login to Book
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- No Results Message -->
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-route"></i>
+                <h4>No Routes Found</h4>
+                <p class="text-muted mb-4">
+                    {% if start_point or end_point or sacco_id %}
+                    No routes match your filter criteria. Try different filters.
+                    {% else %}
+                    No routes are currently available. Please check back later.
+                    {% endif %}
+                </p>
+                <a href="{% url 'routes_list' %}" class="btn btn-primary">
+                    <i class="fas fa-redo me-1"></i> Clear Filters
+                </a>
+            </div>
+            {% endif %}
+            
+            <!-- Footer -->
+            <div class="mt-5 pt-4 border-top text-center text-muted">
+                <p class="mb-0">
+                    <i class="fas fa-bus text-primary me-1"></i>
+                    Matwana Passenger System &copy; {% now "Y" %}
+                </p>
+                <small>Showing {{ routes.count }} of {{ total_routes }} routes</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <div class="modal fade" id="routeDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Route Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="routeDetailsContent">
+                    <!-- Content will be loaded via JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="bookingModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Book Trip</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="bookingContent">
+                    <!-- Content will be loaded via JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Show route details
+        function showRouteDetails(routeId) {
+            fetch(`/api/routes/${routeId}/details/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const route = data.route;
+                        const trips = data.upcoming_trips;
+                        
+                        let content = `
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Route Information</h6>
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>Route Name:</th>
+                                            <td>${route.name}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>SACCO:</th>
+                                            <td>${route.sacco}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Fare:</th>
+                                            <td><strong>KES ${route.fare}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Distance:</th>
+                                            <td>${route.distance} km</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Duration:</th>
+                                            <td>${route.duration} minutes</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Route:</th>
+                                            <td>${route.description}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Upcoming Trips</h6>
+                        `;
+                        
+                        if (trips.length > 0) {
+                            content += `
+                                <div class="list-group">
+                            `;
+                            trips.forEach(trip => {
+                                content += `
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>${trip.time}</strong><br>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-bus"></i> ${trip.matatu} | 
+                                                    <i class="fas fa-user"></i> ${trip.driver}
+                                                </small>
+                                            </div>
+                                            <button class="btn btn-sm btn-primary" onclick="bookTrip(${route.id}, ${trip.id})">
+                                                Book
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            content += `</div>`;
+                        } else {
+                            content += `
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    No upcoming trips scheduled for this route.
+                                </div>
+                            `;
+                        }
+                        
+                        content += `
+                                </div>
+                            </div>
+                        `;
+                        
+                        document.getElementById('routeDetailsContent').innerHTML = content;
+                        const modal = new bootstrap.Modal(document.getElementById('routeDetailsModal'));
+                        modal.show();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading route details');
+                });
+        }
+        
+        // Book route
+        function bookRoute(routeId) {
+            fetch(`/api/routes/${routeId}/details/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const route = data.route;
+                        const trips = data.upcoming_trips;
+                        
+                        let content = `
+                            <h6>${route.name}</h6>
+                            <p class="text-muted">${route.description}</p>
+                            <p><strong>Fare: KES ${route.fare}</strong></p>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Select Trip Time</label>
+                        `;
+                        
+                        if (trips.length > 0) {
+                            content += `
+                                <div class="list-group">
+                            `;
+                            trips.forEach(trip => {
+                                content += `
+                                    <div class="list-group-item">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="tripTime" id="trip${trip.id}" value="${trip.id}">
+                                            <label class="form-check-label w-100" for="trip${trip.id}">
+                                                <strong>${trip.time}</strong><br>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-bus"></i> ${trip.matatu} | 
+                                                    <i class="fas fa-user"></i> ${trip.driver}
+                                                </small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            content += `</div>`;
+                        } else {
+                            content += `
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    No upcoming trips available.
+                                </div>
+                            `;
+                        }
+                        
+                        content += `
+                            </div>
+                            <div id="bookingMessage"></div>
+                        `;
+                        
+                        if (trips.length > 0) {
+                            content += `
+                                <button class="btn btn-primary w-100" onclick="confirmBooking(${route.id})">
+                                    <i class="fas fa-ticket-alt me-1"></i> Confirm Booking
+                                </button>
+                            `;
+                        }
+                        
+                        document.getElementById('bookingContent').innerHTML = content;
+                        const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
+                        modal.show();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading booking information');
+                });
+        }
+        
+        // Confirm booking
+        function confirmBooking(routeId) {
+            const selectedTrip = document.querySelector('input[name="tripTime"]:checked');
+            
+            if (!selectedTrip) {
+                alert('Please select a trip time');
+                return;
+            }
+            
+            const tripId = selectedTrip.value;
+            const messageDiv = document.getElementById('bookingMessage');
+            
+            messageDiv.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-spinner fa-spin me-2"></i>
+                    Processing booking...
+                </div>
+            `;
+            
+            fetch('/api/book-trip/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    route_id: routeId,
+                    trip_id: tripId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    messageDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            ${data.message}<br>
+                            <small>Booking ID: ${data.booking_id}</small>
+                        </div>
+                    `;
+                    
+                    // Close modal after 2 seconds
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
+                        modal.hide();
+                        window.location.href = "{% url 'dashboard' %}";
+                    }, 2000);
+                } else {
+                    messageDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            ${data.message}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                messageDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        An error occurred during booking.
+                    </div>
+                `;
+            });
+        }
+        
+        // Book specific trip
+        function bookTrip(routeId, tripId) {
+            const messageDiv = document.getElementById('routeDetailsContent');
+            messageDiv.innerHTML += `
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-spinner fa-spin me-2"></i>
+                    Processing booking...
+                </div>
+            `;
+            
+            fetch('/api/book-trip/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    route_id: routeId,
+                    trip_id: tripId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    messageDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            ${data.message}<br>
+                            <small>Booking ID: ${data.booking_id}</small>
+                        </div>
+                    `;
+                    
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('routeDetailsModal'));
+                        modal.hide();
+                        window.location.href = "{% url 'dashboard' %}";
+                    }, 2000);
+                } else {
+                    messageDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            ${data.message}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                messageDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        An error occurred during booking.
+                    </div>
+                `;
+            });
+        }
+        
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Initialize tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            })
+        });
+    </script>
+</body>
+</html>

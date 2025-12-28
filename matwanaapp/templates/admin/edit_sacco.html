@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% block title %}Edit SACCO - {{ sacco.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">
+            <i class="fas fa-edit fa-fw mr-2"></i>Edit SACCO
+        </h1>
+        <a href="{{ url_for('manage_sacco') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left fa-fw mr-1"></i> Back
+        </a>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Edit SACCO Form -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">SACCO Details</h6>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('edit_sacco', id=sacco.id) }}" enctype="multipart/form-data">
+                <!-- Basic Information -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="name">SACCO Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ sacco.name }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="registration_number">Registration Number *</label>
+                            <input type="text" class="form-control" id="registration_number" 
+                                   name="registration_number" value="{{ sacco.registration_number }}" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ sacco.email }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="phone">Phone Number *</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" 
+                                   value="{{ sacco.phone }}" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location Information -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="county">County *</label>
+                            <select class="form-control" id="county" name="county" required>
+                                <option value="">Select County</option>
+                                {% for county in counties %}
+                                    <option value="{{ county }}" {% if sacco.county == county %}selected{% endif %}>
+                                        {{ county }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="town">Town/City *</label>
+                            <input type="text" class="form-control" id="town" name="town" 
+                                   value="{{ sacco.town }}" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="status">Status *</label>
+                            <select class="form-control" id="status" name="status" required>
+                                <option value="active" {% if sacco.status == 'active' %}selected{% endif %}>Active</option>
+                                <option value="suspended" {% if sacco.status == 'suspended' %}selected{% endif %}>Suspended</option>
+                                <option value="inactive" {% if sacco.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea class="form-control" id="description" name="description" 
+                              rows="3">{{ sacco.description }}</textarea>
+                </div>
+
+                <!-- Logo Upload -->
+                <div class="form-group">
+                    <label for="logo">SACCO Logo</label>
+                    <div class="custom-file">
+                        <input type="file" class="custom-file-input" id="logo" name="logo" 
+                               accept="image/*">
+                        <label class="custom-file-label" for="logo">Choose file</label>
+                    </div>
+                    {% if sacco.logo %}
+                        <small class="form-text text-muted">
+                            Current logo: <a href="{{ url_for('static', filename='uploads/logos/' + sacco.logo) }}" target="_blank">View</a>
+                        </small>
+                    {% endif %}
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save fa-fw mr-1"></i> Update SACCO
+                    </button>
+                    <a href="{{ url_for('manage_sacco') }}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- File Input Script -->
+<script>
+    // Update file input label
+    document.querySelector('.custom-file-input').addEventListener('change', function(e) {
+        var fileName = document.getElementById("logo").files[0].name;
+        var nextSibling = e.target.nextElementSibling;
+        nextSibling.innerText = fileName;
+    });
+</script>
+{% endblock %}

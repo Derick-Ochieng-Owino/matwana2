@@ -1,0 +1,544 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Users - Super Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-purple: #7c3aed;
+            --primary-purple-dark: #6d28d9;
+            --primary-purple-light: #8b5cf6;
+            --secondary-purple: #a78bfa;
+            --accent-purple: #c4b5fd;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --bg-light: #f9fafb;
+            --white: #ffffff;
+            --border-color: #e5e7eb;
+            --success-green: #10b981;
+            --error-red: #ef4444;
+            --warning-amber: #f59e0b;
+        }
+        
+        .admin-wrapper {
+            min-height: 100vh;
+            background: var(--bg-light);
+            display: flex;
+        }
+        
+        .sidebar {
+            background: var(--white);
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            width: 280px;
+            flex-shrink: 0;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        
+        .nav-link {
+            color: var(--text-dark);
+            padding: 12px 20px;
+            margin: 5px 0;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            background: rgba(124, 58, 237, 0.1);
+            color: var(--primary-purple);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+            transition: all 0.3s;
+        }
+        
+        .card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+            border: none;
+            padding: 10px 20px;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-purple-dark), var(--primary-purple-light));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+        }
+        
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.75rem;
+        }
+        
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table th {
+            border-top: none;
+            font-weight: 600;
+            color: var(--text-light);
+            background: var(--bg-light);
+        }
+        
+        .table td {
+            vertical-align: middle;
+            border-color: var(--border-color);
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+        }
+        
+        .search-box input {
+            padding-left: 45px;
+            border-radius: 0.5rem;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s;
+        }
+        
+        .search-box input:focus {
+            border-color: var(--primary-purple);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+        
+        .filter-select {
+            border-radius: 0.5rem;
+            border: 2px solid var(--border-color);
+            padding: 10px 15px;
+            transition: all 0.3s;
+        }
+        
+        .filter-select:focus {
+            border-color: var(--primary-purple);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            transition: all 0.3s;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-edit {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-green);
+        }
+        
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error-red);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            color: var(--text-light);
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .admin-wrapper {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                min-height: auto;
+                position: relative;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .action-btn {
+                width: 32px;
+                height: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-wrapper">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="p-4 text-center">
+                <div class="mb-3">
+                    <i class="fas fa-user-shield fa-3x" style="color: var(--primary-purple);"></i>
+                </div>
+                <h5 class="fw-bold">{{ admin.first_name }} {{ admin.last_name }}</h5>
+                <p class="text-muted small">Super Admin</p>
+            </div>
+            
+            <nav class="nav flex-column p-3">
+                <a class="nav-link" href="{% url 'admin_dashboard' %}">
+                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                </a>
+                <a class="nav-link active" href="{% url 'admin_manage_users' %}">
+                    <i class="fas fa-users me-2"></i> Users
+                </a>
+                <a class="nav-link" href="{% url 'admin_manage_saccos' %}">
+                    <i class="fas fa-building me-2"></i> Saccos
+                </a>
+                <a class="nav-link" href="{% url 'admin_manage_matatus' %}">
+                    <i class="fas fa-bus me-2"></i> Matatus
+                </a>
+                <a class="nav-link" href="{% url 'admin_manage_routes' %}">
+                    <i class="fas fa-route me-2"></i> Routes
+                </a>
+                <a class="nav-link" href="{% url 'admin_manage_trips' %}">
+                    <i class="fas fa-road me-2"></i> Trips
+                </a>
+                <a class="nav-link" href="{% url 'admin_manage_payments' %}">
+                    <i class="fas fa-credit-card me-2"></i> Payments
+                </a>
+                <a class="nav-link" href="{% url 'admin_manage_notifications' %}">
+                    <i class="fas fa-bell me-2"></i> Notifications
+                </a>
+                <div class="mt-auto pt-3 border-top">
+                    <a class="nav-link text-danger" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i> Logout
+                    </a>
+                </div>
+            </nav>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-bold">User Management</h2>
+                    <p class="text-muted mb-0">Manage all system users</p>
+                </div>
+                <div>
+                    <a href="{% url 'admin_add_user' %}" class="btn btn-primary">
+                        <i class="fas fa-user-plus me-2"></i> Add New User
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" action="{% url 'admin_manage_users' %}">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           name="search" 
+                                           value="{{ search_query }}"
+                                           placeholder="Search users by name, email, or phone...">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <select name="user_type" class="form-control filter-select">
+                                    <option value="">All User Types</option>
+                                    {% for type_code, type_name in user_types %}
+                                    <option value="{{ type_code }}" {% if selected_type == type_code %}selected{% endif %}>
+                                        {{ type_name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-filter me-2"></i> Filter
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Users Table -->
+            <div class="card">
+                <div class="card-body">
+                    {% if users %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Contact Info</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="user-avatar me-3">
+                                                {{ user.first_name|first }}{{ user.last_name|first }}
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-0">{{ user.first_name }} {{ user.last_name }}</h6>
+                                                <small class="text-muted">ID: {{ user.id_number }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <small class="text-muted d-block">
+                                                <i class="fas fa-envelope me-1"></i> {{ user.email }}
+                                            </small>
+                                            <small class="text-muted d-block mt-1">
+                                                <i class="fas fa-phone me-1"></i> {{ user.phone_number }}
+                                            </small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if user.user_type == 'super_admin' %}
+                                        <span class="badge" style="background: rgba(124, 58, 237, 0.1); color: var(--primary-purple);">
+                                            <i class="fas fa-user-shield me-1"></i> Super Admin
+                                        </span>
+                                        {% elif user.user_type == 'sacco_admin' %}
+                                        <span class="badge" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                                            <i class="fas fa-user-tie me-1"></i> SACCO Admin
+                                        </span>
+                                        {% elif user.user_type == 'driver' %}
+                                        <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: var(--success-green);">
+                                            <i class="fas fa-user-tie me-1"></i> Driver
+                                        </span>
+                                        {% elif user.user_type == 'conductor' %}
+                                        <span class="badge" style="background: rgba(245, 158, 11, 0.1); color: var(--warning-amber);">
+                                            <i class="fas fa-user-check me-1"></i> Conductor
+                                        </span>
+                                        {% else %}
+                                        <span class="badge" style="background: rgba(107, 114, 128, 0.1); color: var(--text-light);">
+                                            <i class="fas fa-user me-1"></i> Passenger
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.is_active %}
+                                        <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: var(--success-green);">
+                                            <i class="fas fa-check-circle me-1"></i> Active
+                                        </span>
+                                        {% else %}
+                                        <span class="badge" style="background: rgba(239, 68, 68, 0.1); color: var(--error-red);">
+                                            <i class="fas fa-times-circle me-1"></i> Inactive
+                                        </span>
+                                        {% endif %}
+                                        {% if user.is_verified %}
+                                        <span class="badge" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; margin-left: 5px;">
+                                            <i class="fas fa-shield-check me-1"></i> Verified
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ user.date_joined|date:"M d, Y" }}<br>
+                                            <span class="text-muted">{{ user.date_joined|timesince }} ago</span>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <a href="{% url 'admin_edit_user' user.id %}" 
+                                               class="action-btn btn-edit"
+                                               title="Edit User">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="#" 
+                                               class="action-btn btn-delete"
+                                               data-bs-toggle="modal" 
+                                               data-bs-target="#deleteModal{{ user.id }}"
+                                               title="Delete User">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Delete Confirmation Modal -->
+                                <div class="modal fade" id="deleteModal{{ user.id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Confirm Delete</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Are you sure you want to delete user <strong>{{ user.first_name }} {{ user.last_name }}</strong>?</p>
+                                                <p class="text-danger">
+                                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                                    This action cannot be undone.
+                                                </p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <form method="POST" action="{% url 'admin_delete_user' user.id %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-danger">
+                                                        <i class="fas fa-trash me-2"></i> Delete User
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination (optional) -->
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div>
+                            <span class="text-muted">
+                                Showing {{ users.count }} user{{ users.count|pluralize }}
+                            </span>
+                        </div>
+                        <!-- Add pagination links here if needed -->
+                    </div>
+                    
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <h4>No Users Found</h4>
+                        <p class="text-muted">
+                            {% if search_query or selected_type %}
+                            No users match your search criteria. Try different filters.
+                            {% else %}
+                            No users have been registered yet.
+                            {% endif %}
+                        </p>
+                        <a href="{% url 'admin_add_user' %}" class="btn btn-primary mt-3">
+                            <i class="fas fa-user-plus me-2"></i> Add First User
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Back to Dashboard -->
+            <div class="text-center mt-4">
+                <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-submit filter form on select change
+        document.querySelector('select[name="user_type"]').addEventListener('change', function() {
+            this.form.submit();
+        });
+        
+        // Show success/error messages
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if messages %}
+            {% for message in messages %}
+            showNotification('{{ message.tags }}', '{{ message }}');
+            {% endfor %}
+            {% endif %}
+        });
+        
+        function showNotification(type, message) {
+            const container = document.createElement('div');
+            container.className = 'position-fixed top-0 end-0 p-3';
+            container.style.zIndex = '1050';
+            
+            let bgColor = 'bg-primary';
+            if (type === 'success') bgColor = 'bg-success';
+            if (type === 'error' || type === 'danger') bgColor = 'bg-danger';
+            if (type === 'warning') bgColor = 'bg-warning';
+            if (type === 'info') bgColor = 'bg-info';
+            
+            container.innerHTML = `
+                <div class="toast show" role="alert">
+                    <div class="toast-header ${bgColor} text-white">
+                        <strong class="me-auto">Notification</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(container);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                container.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

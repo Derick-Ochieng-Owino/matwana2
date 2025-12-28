@@ -1,0 +1,390 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Dashboard - Matwana</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Use the same CSS from auth.css with admin-specific additions */
+        :root {
+            --primary-purple: #7c3aed;
+            --primary-purple-dark: #6d28d9;
+            --primary-purple-light: #8b5cf6;
+            --secondary-purple: #a78bfa;
+            --accent-purple: #c4b5fd;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --bg-light: #f9fafb;
+            --white: #ffffff;
+            --border-color: #e5e7eb;
+        }
+        
+        .admin-wrapper {
+            min-height: 100vh;
+            background: var(--bg-light);
+        }
+        
+        .sidebar {
+            background: var(--white);
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            width: 280px;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        
+        .stat-card {
+            background: var(--white);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary-purple);
+            transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(124, 58, 237, 0.15);
+        }
+        
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--white);
+            background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+            margin-bottom: 1rem;
+        }
+        
+        .nav-link {
+            color: var(--text-dark);
+            padding: 12px 20px;
+            margin: 5px 0;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            background: rgba(124, 58, 237, 0.1);
+            color: var(--primary-purple);
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-wrapper d-flex">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="p-4 text-center">
+                <div class="mb-3">
+                    <i class="fas fa-user-shield fa-3x text-primary"></i>
+                </div>
+                <h5 class="fw-bold">{{ admin.first_name }} {{ admin.last_name }}</h5>
+                <p class="text-muted small">Super Admin</p>
+            </div>
+            
+            <nav class="nav flex-column p-3">
+                <a class="nav-link active" href="{% url 'admin_dashboard' %}">
+                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                </a>
+                <a class="nav-link" href="{% url 'admin_manage_users' %}">
+                    <i class="fas fa-users me-2"></i> Users
+                </a>
+                <a class="nav-link" href="{% url 'admin_manage_saccos' %}">
+                    <i class="fas fa-building me-2"></i> Saccos
+                </a>
+                <a class="nav-link" href="{% url 'admin_manage_matatus' %}">
+                    <i class="fas fa-bus me-2"></i> Matatus
+                </a>
+                <a class="nav-link" href="{% url 'admin_manage_routes' %}">
+                    <i class="fas fa-route me-2"></i> Routes
+                </a>
+                <a class="nav-link" href="{% url 'admin_manage_trips' %}">
+                    <i class="fas fa-road me-2"></i> Trips
+                </a>
+                <a class="nav-link" href="{% url 'admin_manage_payments' %}">
+                    <i class="fas fa-credit-card me-2"></i> Payments
+                </a>
+                <a class="nav-link" href="{% url 'admin_manage_notifications' %}">
+                    <i class="fas fa-bell me-2"></i> Notifications
+                </a>
+                <div class="mt-auto">
+                    <a class="nav-link text-danger" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i> Logout
+                    </a>
+                </div>
+            </nav>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-bold">Super Admin Dashboard</h2>
+                    <p class="text-muted mb-0">Welcome back, {{ admin.first_name }}!</p>
+                </div>
+                <div class="text-muted">
+                    <i class="fas fa-calendar me-2"></i>
+                    {{ current_time|date:"F j, Y" }}
+                </div>
+            </div>
+            
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <h3>{{ total_saccos }}</h3>
+                        <p class="text-muted mb-0">Total Saccos</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3>{{ total_passengers }}</h3>
+                        <p class="text-muted mb-0">Passengers</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <h3>{{ total_drivers }}</h3>
+                        <p class="text-muted mb-0">Drivers</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                        <h3>{{ total_conductors }}</h3>
+                        <p class="text-muted mb-0">Conductors</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Second Row Stats -->
+            <div class="row mb-4">
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-bus"></i>
+                        </div>
+                        <h3>{{ total_matatus }}</h3>
+                        <p class="text-muted mb-0">Matatus</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-route"></i>
+                        </div>
+                        <h3>{{ total_routes }}</h3>
+                        <p class="text-muted mb-0">Routes</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-road"></i>
+                        </div>
+                        <h3>{{ total_trips }}</h3>
+                        <p class="text-muted mb-0">Trips</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <h3>KES {{ payment_stats.total_amount|default:"0" }}</h3>
+                        <p class="text-muted mb-0">Total Payments</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Section -->
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">User Registrations</h5>
+                            <canvas id="usersChart" height="100"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">Payment Statistics</h5>
+                            <canvas id="paymentsChart" height="100"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">Recent Users</h5>
+                            <div class="list-group">
+                                {% for user in recent_users %}
+                                <div class="list-group-item border-0">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            {{ user.first_name|first }}{{ user.last_name|first }}
+                                        </div>
+                                        <div class="ms-3">
+                                            <h6 class="mb-0">{{ user.first_name }} {{ user.last_name }}</h6>
+                                            <small class="text-muted">{{ user.get_user_type_display }}</small>
+                                        </div>
+                                        <div class="ms-auto text-muted small">
+                                            {{ user.date_joined|timesince }} ago
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">Recent Saccos</h5>
+                            <div class="list-group">
+                                {% for sacco in recent_saccos %}
+                                <div class="list-group-item border-0">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-building fa-2x text-primary me-3"></i>
+                                        <div>
+                                            <h6 class="mb-0">{{ sacco.name }}</h6>
+                                            <small class="text-muted">{{ sacco.registration_number }}</small>
+                                        </div>
+                                        <div class="ms-auto text-muted small">
+                                            {{ sacco.date_registered|date:"M d" }}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Users Chart
+            const usersCtx = document.getElementById('usersChart').getContext('2d');
+            const usersChart = new Chart(usersCtx, {
+                type: 'line',
+                data: {
+                    labels: {{ users_by_month|safe }},
+                    datasets: [{
+                        label: 'User Registrations',
+                        data: [{% for month in users_by_month %}{{ month.count }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                        borderColor: '#7c3aed',
+                        backgroundColor: 'rgba(124, 58, 237, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            
+            // Payments Chart
+            const paymentsCtx = document.getElementById('paymentsChart').getContext('2d');
+            const paymentsChart = new Chart(paymentsCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Pending', 'Failed'],
+                    datasets: [{
+                        data: [
+                            {{ payment_stats.total_transactions|default:"0" }},
+                            {{ payment_stats.pending_payments|default:"0" }},
+                            0
+                        ],
+                        backgroundColor: [
+                            '#10b981',
+                            '#f59e0b',
+                            '#ef4444'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+            
+            // Load real-time stats
+            loadDashboardStats();
+            
+            // Refresh stats every 30 seconds
+            setInterval(loadDashboardStats, 30000);
+        });
+        
+        // Load dashboard stats via AJAX
+        async function loadDashboardStats() {
+            try {
+                const response = await fetch('/admin/api/dashboard-stats/');
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateDashboard(data);
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        // Update dashboard with real-time data
+        function updateDashboard(data) {
+            // Update charts with new data
+            // You can implement this based on your specific needs
+            console.log('Dashboard updated:', data);
+        }
+    </script>
+</body>
+</html>

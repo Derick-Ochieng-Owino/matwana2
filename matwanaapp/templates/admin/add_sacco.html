@@ -1,0 +1,162 @@
+{% extends 'admin/base.html' %}
+{% load static %}
+
+{% block title %}Add New SACCO{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <!-- Header -->
+    <div class="page-header mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="page-title">Add New SACCO</h1>
+                <p class="page-subtitle">Register a new SACCO in the system</p>
+            </div>
+            <div>
+                <a href="{% url 'admin_manage_saccos' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Saccos
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Messages -->
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- Form -->
+    <form method="POST" action="{% url 'admin_add_sacco' %}" class="card">
+        {% csrf_token %}
+        <div class="card-body">
+            
+            <!-- Basic Information -->
+            <div class="form-section">
+                <h5 class="form-section-title">
+                    <i class="fas fa-info-circle me-2"></i> Basic Information
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label required-field">SACCO Name</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-building"></i>
+                            <input type="text" 
+                                   class="form-control" 
+                                   name="name" 
+                                   required
+                                   placeholder="Enter SACCO name">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-field">Registration Number</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-id-card"></i>
+                            <input type="text" 
+                                   class="form-control" 
+                                   name="registration_number" 
+                                   required
+                                   placeholder="Enter registration number">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Contact Information -->
+            <div class="form-section">
+                <h5 class="form-section-title">
+                    <i class="fas fa-address-book me-2"></i> Contact Information
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label required-field">Contact Person</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-user"></i>
+                            <input type="text" 
+                                   class="form-control" 
+                                   name="contact_person" 
+                                   required
+                                   placeholder="Enter contact person name">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-field">Contact Phone</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-phone"></i>
+                            <input type="tel" 
+                                   class="form-control" 
+                                   name="contact_phone" 
+                                   required
+                                   pattern="\+254\d{9}"
+                                   placeholder="+254XXXXXXXXX">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-field">Contact Email</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" 
+                                   class="form-control" 
+                                   name="contact_email" 
+                                   required
+                                   placeholder="contact@sacco.com">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Additional Information -->
+            <div class="form-section">
+                <h5 class="form-section-title">
+                    <i class="fas fa-map-marker-alt me-2"></i> Additional Information
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label">Address</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-map-pin"></i>
+                            <textarea class="form-control" 
+                                      name="address" 
+                                      rows="3"
+                                      placeholder="Enter SACCO address"></textarea>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Assign Admin</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-user-tie"></i>
+                            <select class="form-select" name="admin">
+                                <option value="">No admin assigned</option>
+                                {% for admin in available_admins %}
+                                <option value="{{ admin.id }}">{{ admin.first_name }} {{ admin.last_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <small class="text-muted">Optional - assign an existing SACCO admin</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                <div>
+                    <a href="{% url 'admin_manage_saccos' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i> Cancel
+                    </a>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i> Create SACCO
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

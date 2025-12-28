@@ -1,57 +1,889 @@
-{% extends 'base.html' %}
 {% load static %}
-
-{% block content %}
-<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
-
-<div class="dashboard-wrapper">
-    <nav class="sidebar">
-        <h2 class="text-2xl font-bold mb-8 text-green-500">Matwana</h2>
-        <a href="#" class="nav-link active"><i class="fas fa-home mr-2"></i> Dashboard</a>
-        <a href="{% url 'search_route' %}" class="nav-link"><i class="fas fa-search mr-2"></i> Find Ride</a>
-        <a href="#" class="nav-link"><i class="fas fa-history mr-2"></i> History</a>
-        <a href="{% url 'logout' %}" class="nav-link mt-auto"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
-    </nav>
-
-    <main class="main-content">
-        <header class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-2xl font-bold">Hello, {{ user.first_name }}!</h1>
-                <p class="text-gray-500">Where are we going today?</p>
-            </div>
-            <div class="stat-card flex items-center bg-green-50">
-                <span class="text-green-600 font-bold text-xl">{{ user.credits }} Credits</span>
-            </div>
-        </header>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div class="stat-card cursor-pointer hover:border-green-500 border-2 border-transparent transition" onclick="openScanner()">
-                <div class="flex items-center">
-                    <div class="p-4 bg-green-100 rounded-full mr-4"><i class="fas fa-qrcode text-green-600"></i></div>
-                    <div>
-                        <h3 class="font-bold">Scan Matatu QR</h3>
-                        <p class="text-sm text-gray-500">Register for a trip instantly</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passenger Dashboard - Matwana</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #1e3c72;
+            --secondary-color: #2575fc;
+            --accent-color: #ff6b35;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --light-bg: #f8f9fa;
+            --dark-text: #2d3436;
+        }
+        
+        .dashboard-wrapper {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--light-bg) 0%, #e9ecef 100%);
+        }
+        
+        .sidebar {
+            background: white;
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+        }
+        
+        .user-avatar {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+            margin: 0 auto;
+        }
+        
+        .wallet-card {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .nav-link {
+            color: var(--dark-text);
+            padding: 12px 20px;
+            margin: 5px 0;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            background: rgba(30, 60, 114, 0.1);
+            color: var(--primary-color);
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+        
+        .route-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .booking-card {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid;
+        }
+        
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                min-height: auto;
+                position: relative;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-wrapper">
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Sidebar -->
+                <div class="col-lg-3 col-md-4 sidebar">
+                    <div class="text-center py-4">
+                        <div class="user-avatar mb-3">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <h4>{{ passenger.first_name }} {{ passenger.last_name }}</h4>
+                        <p class="text-muted">Passenger ID: {{ passenger.id|slice:":8"|upper }}</p>
+                    </div>
+                    
+                    <div class="wallet-card text-center">
+                        <h6><i class="fas fa-wallet me-2"></i> Wallet Balance</h6>
+                        <h3 class="mt-2">KES {{ passenger.credits }}</h3>
+                        <button class="btn btn-sm btn-light mt-3" data-bs-toggle="modal" data-bs-target="#topupModal">
+                            <i class="fas fa-plus"></i> Top Up
+                        </button>
+                    </div>
+                    
+                    <nav class="nav flex-column mt-4">
+                        <a class="nav-link active" href="#dashboard">
+                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                        </a>
+                        <a class="nav-link" href="#book-ride">
+                            <i class="fas fa-bus me-2"></i> Book Ride
+                        </a>
+                        <a class="nav-link" href="#my-trips">
+                            <i class="fas fa-route me-2"></i> My Trips
+                        </a>
+                        <a class="nav-link" href="#payments">
+                            <i class="fas fa-credit-card me-2"></i> Payments
+                        </a>
+                        <a class="nav-link" href="#notifications">
+                            <i class="fas fa-bell me-2"></i> Notifications
+                            {% if unread_notifications %}
+                            <span class="notification-badge">{{ unread_notifications.count }}</span>
+                            {% endif %}
+                        </a>
+                        <a class="nav-link" href="#profile">
+                            <i class="fas fa-user-cog me-2"></i> Profile Settings
+                        </a>
+                        <a class="nav-link text-danger" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt me-2"></i> Logout
+                        </a>
+                    </nav>
+                </div>
+                
+                <!-- Main Content -->
+                <div class="col-lg-9 col-md-8">
+                    <div class="p-4">
+                        <!-- Top Bar -->
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div class="search-box w-50">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0">
+                                        <i class="fas fa-search text-muted"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-start-0" 
+                                           placeholder="Search routes, stops, or matatus..." 
+                                           id="routeSearch">
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div class="position-relative me-3">
+                                    <button class="btn btn-light rounded-circle p-2" 
+                                            data-bs-toggle="dropdown">
+                                        <i class="fas fa-bell"></i>
+                                        {% if unread_notifications %}
+                                        <span class="notification-badge">{{ unread_notifications.count }}</span>
+                                        {% endif %}
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end p-0" style="width: 300px;">
+                                        <div class="p-3 border-bottom">
+                                            <h6 class="mb-0">Notifications</h6>
+                                        </div>
+                                        <div style="max-height: 300px; overflow-y: auto;">
+                                            {% for notification in recent_notifications|slice:":5" %}
+                                            <div class="p-3 border-bottom">
+                                                <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                                                <p class="mb-0">{{ notification.message }}</p>
+                                            </div>
+                                            {% empty %}
+                                            <div class="p-3 text-center text-muted">
+                                                No notifications
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="text-muted">{{ current_time|date:"l, F j, Y" }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Welcome Banner -->
+                        <div class="alert alert-primary rounded-3 mb-4" 
+                             style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h4 class="text-white mb-2">
+                                        {% if greeting %}
+                                        {{ greeting }}, {{ passenger.first_name }}!
+                                        {% else %}
+                                        Welcome back, {{ passenger.first_name }}!
+                                        {% endif %}
+                                    </h4>
+                                    <p class="text-white-50 mb-0">
+                                        Ready for your next journey? Book your ride in seconds.
+                                    </p>
+                                </div>
+                                <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#quickBookModal">
+                                    <i class="fas fa-bolt me-2"></i> Quick Book
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Stats -->
+                        <div class="row mb-4">
+                            <div class="col-md-3 col-6">
+                                <div class="stat-card">
+                                    <div class="stat-icon mb-3" 
+                                         style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
+                                        <i class="fas fa-route"></i>
+                                    </div>
+                                    <h3>{{ total_trips }}</h3>
+                                    <p class="text-muted mb-0">Total Trips</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <div class="stat-card">
+                                    <div class="stat-icon mb-3" 
+                                         style="background: linear-gradient(135deg, #43e97b, #38f9d7);">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                    <h3>{{ active_bookings.count }}</h3>
+                                    <p class="text-muted mb-0">Active Bookings</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <div class="stat-card">
+                                    <div class="stat-icon mb-3" 
+                                         style="background: linear-gradient(135deg, #fa709a, #fee140);">
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                    <h3>{{ average_rating|default:"4.8" }}</h3>
+                                    <p class="text-muted mb-0">Average Rating</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <div class="stat-card">
+                                    <div class="stat-icon mb-3" 
+                                         style="background: linear-gradient(135deg, #a8edea, #fed6e3);">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </div>
+                                    <h3>KES {{ total_spent }}</h3>
+                                    <p class="text-muted mb-0">Total Spent</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- Featured Routes -->
+                            <div class="col-lg-8 mb-4">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-white border-0">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-fire text-warning me-2"></i>
+                                                Popular Routes
+                                            </h5>
+                                            <a href="{% url 'routes_list' %}" class="text-primary">
+                                                View All <i class="fas fa-arrow-right ms-1"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row" id="routesContainer">
+                                            {% for route in popular_routes %}
+                                            <div class="col-md-6 mb-3">
+                                                <div class="route-card">
+                                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                                        <div>
+                                                            <h6 class="mb-1">{{ route.name }}</h6>
+                                                            <small class="text-muted">
+                                                                {{ route.sacco.name }}
+                                                            </small>
+                                                        </div>
+                                                        <span class="badge bg-primary">
+                                                            KES {{ route.standard_fare }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <small class="text-muted d-block mb-1">
+                                                            <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                                                            {{ route.start_point }}
+                                                        </small>
+                                                        <small class="text-muted d-block">
+                                                            <i class="fas fa-map-marker-alt text-success me-1"></i>
+                                                            {{ route.end_point }}
+                                                        </small>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-clock me-1"></i>
+                                                            {{ route.estimated_duration_minutes }} min
+                                                        </small>
+                                                        <button class="btn btn-sm btn-primary" 
+                                                                onclick="showRouteDetails('{{ route.id }}')">
+                                                            Book Now
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% empty %}
+                                            <div class="col-12 text-center py-4">
+                                                <i class="fas fa-route fa-3x text-muted mb-3"></i>
+                                                <p class="text-muted">No routes available at the moment.</p>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Recent Trips Chart -->
+                                <div class="card border-0 shadow-sm mt-4">
+                                    <div class="card-header bg-white border-0">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-chart-line text-success me-2"></i>
+                                            Trip Statistics
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="tripsChart" height="100"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Sidebar Content -->
+                            <div class="col-lg-4">
+                                <!-- Active Bookings -->
+                                <div class="card border-0 shadow-sm mb-4">
+                                    <div class="card-header bg-white border-0">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-calendar-check text-primary me-2"></i>
+                                            Active Bookings
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="bookingsList">
+                                            {% for booking in active_bookings %}
+                                            <div class="booking-card" 
+                                                 style="border-left-color: 
+                                                 {% if booking.trip.status == 'active' %}#28a745
+                                                 {% elif booking.trip.status == 'scheduled' %}#007bff
+                                                 {% else %}#6c757d{% endif %}">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <h6 class="mb-1">{{ booking.trip.route.name }}</h6>
+                                                        <small class="text-muted">
+                                                            {{ booking.trip.matatu.plate_number }}
+                                                        </small>
+                                                    </div>
+                                                    <span class="status-badge" 
+                                                          style="background: 
+                                                          {% if booking.trip.status == 'active' %}rgba(40, 167, 69, 0.1); color: #28a745;
+                                                          {% elif booking.trip.status == 'scheduled' %}rgba(0, 123, 255, 0.1); color: #007bff;
+                                                          {% else %}rgba(108, 117, 125, 0.1); color: #6c757d;{% endif %}">
+                                                        {{ booking.trip.status|title }}
+                                                    </span>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <small class="text-muted d-block">
+                                                        <i class="fas fa-clock me-1"></i>
+                                                        {{ booking.trip.scheduled_departure|date:"g:i A" }}
+                                                    </small>
+                                                    <small class="text-muted d-block">
+                                                        <i class="fas fa-user me-1"></i>
+                                                        Driver: {{ booking.trip.driver.first_name }}
+                                                    </small>
+                                                </div>
+                                                {% if booking.trip.status == 'active' %}
+                                                <button class="btn btn-sm btn-success w-100 mt-2"
+                                                        onclick="trackTrip('{{ booking.trip.id }}')">
+                                                    <i class="fas fa-map-marker-alt me-1"></i> Track Trip
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                            {% empty %}
+                                            <div class="text-center py-3">
+                                                <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
+                                                <p class="text-muted mb-0">No active bookings</p>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Recent Activity -->
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-white border-0">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-history text-info me-2"></i>
+                                            Recent Activity
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="timeline">
+                                            {% for trip in recent_trips|slice:":5" %}
+                                            <div class="d-flex mb-3">
+                                                <div class="flex-shrink-0">
+                                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
+                                                         style="width: 40px; height: 40px;">
+                                                        <i class="fas fa-bus"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="flex-grow-1 ms-3">
+                                                    <h6 class="mb-0">Trip Completed</h6>
+                                                    <p class="text-muted mb-0 small">
+                                                        {{ trip.trip.route.name }}
+                                                    </p>
+                                                    <small class="text-muted">
+                                                        {{ trip.alighted_at|timesince }} ago
+                                                    </small>
+                                                </div>
+                                            </div>
+                                            {% empty %}
+                                            <div class="text-center py-3">
+                                                <i class="fas fa-history fa-2x text-muted mb-2"></i>
+                                                <p class="text-muted mb-0">No recent activity</p>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <div class="stat-card">
-                <form action="{% url 'manual_entry' %}" method="POST" class="flex gap-2">
-                    {% csrf_token %}
-                    <input type="text" name="plate_number" placeholder="Enter Plate (e.g. KDC 123X)" class="flex-1 border rounded p-2">
-                    <button class="bg-black text-white px-4 py-2 rounded">Go</button>
-                </form>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <!-- Quick Book Modal -->
+    <div class="modal fade" id="quickBookModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Quick Book Ride</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="quickBookForm">
+                        <div class="mb-3">
+                            <label class="form-label">From</label>
+                            <input type="text" class="form-control" placeholder="Enter pickup point" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">To</label>
+                            <input type="text" class="form-control" placeholder="Enter destination" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Travel Date</label>
+                            <input type="date" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            Search Available Routes
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
-
-        <div class="stat-card">
-            <h3 class="font-bold mb-4">Latest Alerts</h3>
-            {% for n in notifications %}
-            <div class="p-3 border-l-4 border-yellow-400 bg-yellow-50 mb-2">
-                <strong>{{ n.title }}</strong>: {{ n.message }}
+    </div>
+    
+    <!-- Top-up Modal -->
+    <div class="modal fade" id="topupModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Top Up Wallet</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="topupForm" action="{% url 'process_payment' %}" method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Amount (KES)</label>
+                            <input type="number" class="form-control" name="amount" min="100" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Payment Method</label>
+                            <select class="form-select" name="payment_method" required>
+                                <option value="mpesa">M-Pesa</option>
+                                <option value="card">Card</option>
+                                <option value="bank">Bank Transfer</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            Proceed to Payment
+                        </button>
+                    </form>
+                </div>
             </div>
-            {% endfor %}
         </div>
-    </main>
-</div>
-{% endblock %}
+    </div>
+    
+    <!-- Route Details Modal -->
+    <div class="modal fade" id="routeDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Route Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="routeDetailsContent">
+                    <!-- Dynamic content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize charts
+            initTripsChart();
+            
+            // Load real-time data
+            loadDashboardData();
+            
+            // Setup search functionality
+            setupSearch();
+        });
+        
+        // Initialize trips chart
+        function initTripsChart() {
+            const ctx = document.getElementById('tripsChart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Trips Per Month',
+                        data: [12, 19, 15, 25, 22, 30],
+                        borderColor: '#2575fc',
+                        backgroundColor: 'rgba(37, 117, 252, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('/api/passenger/dashboard-data/');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update stats dynamically
+                    updateDashboardStats(data.stats);
+                }
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+        
+        // Update dashboard stats
+        function updateDashboardStats(stats) {
+            // This function can be used to update dashboard stats via AJAX
+            console.log('Updating dashboard stats:', stats);
+        }
+        
+        // Setup search functionality
+        function setupSearch() {
+            const searchInput = document.getElementById('routeSearch');
+            const routesContainer = document.getElementById('routesContainer');
+            
+            searchInput.addEventListener('input', async function(e) {
+                const searchTerm = e.target.value;
+                
+                if (searchTerm.length > 2) {
+                    try {
+                        const response = await fetch(`/api/routes/search/?q=${searchTerm}`);
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            updateRoutesDisplay(data.routes);
+                        }
+                    } catch (error) {
+                        console.error('Search error:', error);
+                    }
+                }
+            });
+        }
+        
+        // Update routes display
+        function updateRoutesDisplay(routes) {
+            const container = document.getElementById('routesContainer');
+            
+            if (routes.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center py-4">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No routes found matching your search.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            routes.forEach(route => {
+                html += `
+                    <div class="col-md-6 mb-3">
+                        <div class="route-card">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h6 class="mb-1">${route.name}</h6>
+                                    <small class="text-muted">${route.sacco_name}</small>
+                                </div>
+                                <span class="badge bg-primary">KES ${route.fare}</span>
+                            </div>
+                            <div class="mb-3">
+                                <small class="text-muted d-block mb-1">
+                                    <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                                    ${route.start_point}
+                                </small>
+                                <small class="text-muted d-block">
+                                    <i class="fas fa-map-marker-alt text-success me-1"></i>
+                                    ${route.end_point}
+                                </small>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>
+                                    ${route.duration} min
+                                </small>
+                                <button class="btn btn-sm btn-primary" onclick="showRouteDetails('${route.id}')">
+                                    Book Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Show route details
+        async function showRouteDetails(routeId) {
+            try {
+                const response = await fetch(`/api/routes/${routeId}/details/`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const modalContent = document.getElementById('routeDetailsContent');
+                    modalContent.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Route Information</h6>
+                                <p><strong>Name:</strong> ${data.route.name}</p>
+                                <p><strong>SACCO:</strong> ${data.route.sacco}</p>
+                                <p><strong>Fare:</strong> KES ${data.route.fare}</p>
+                                <p><strong>Distance:</strong> ${data.route.distance} km</p>
+                                <p><strong>Duration:</strong> ${data.route.duration} minutes</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Next Available Trips</h6>
+                                <div class="list-group">
+                                    ${data.upcoming_trips.map(trip => `
+                                        <div class="list-group-item">
+                                            <div class="d-flex justify-content-between">
+                                                <div>
+                                                    <strong>${trip.time}</strong><br>
+                                                    <small>Matatu: ${trip.matatu}</small>
+                                                </div>
+                                                <button class="btn btn-sm btn-primary" onclick="bookTrip('${routeId}', '${trip.id}')">
+                                                    Book
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('routeDetailsModal'));
+                    modal.show();
+                }
+            } catch (error) {
+                console.error('Error loading route details:', error);
+            }
+        }
+        
+        // Book a trip
+        async function bookTrip(routeId, tripId) {
+            try {
+                const response = await fetch('/api/book-trip/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        route_id: routeId,
+                        trip_id: tripId,
+                        passenger_id: '{{ passenger.id }}'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Booking successful! Check your active bookings.');
+                    location.reload();
+                } else {
+                    alert('Booking failed: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Booking error:', error);
+                alert('An error occurred during booking.');
+            }
+        }
+        
+        // Track trip
+        function trackTrip(tripId) {
+            window.location.href = `/trip-tracking/${tripId}/`;
+        }
+        
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Auto-refresh bookings every 30 seconds
+        setInterval(async () => {
+            try {
+                const response = await fetch('/api/active-bookings/');
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateBookingsList(data.bookings);
+                }
+            } catch (error) {
+                console.error('Error refreshing bookings:', error);
+            }
+        }, 30000);
+        
+        // Update bookings list
+        function updateBookingsList(bookings) {
+            const container = document.getElementById('bookingsList');
+            
+            if (bookings.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-3">
+                        <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No active bookings</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            bookings.forEach(booking => {
+                let statusColor = '#6c757d';
+                let statusBg = 'rgba(108, 117, 125, 0.1)';
+                
+                if (booking.status === 'active') {
+                    statusColor = '#28a745';
+                    statusBg = 'rgba(40, 167, 69, 0.1)';
+                } else if (booking.status === 'scheduled') {
+                    statusColor = '#007bff';
+                    statusBg = 'rgba(0, 123, 255, 0.1)';
+                }
+                
+                html += `
+                    <div class="booking-card" style="border-left-color: ${statusColor}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">${booking.route_name}</h6>
+                                <small class="text-muted">${booking.matatu}</small>
+                            </div>
+                            <span class="status-badge" style="background: ${statusBg}; color: ${statusColor}">
+                                ${booking.status}
+                            </span>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted d-block">
+                                <i class="fas fa-clock me-1"></i>
+                                ${booking.time}
+                            </small>
+                            <small class="text-muted d-block">
+                                <i class="fas fa-user me-1"></i>
+                                Driver: ${booking.driver}
+                            </small>
+                        </div>
+                        ${booking.status === 'active' ? `
+                        <button class="btn btn-sm btn-success w-100 mt-2" onclick="trackTrip('${booking.trip_id}')">
+                            <i class="fas fa-map-marker-alt me-1"></i> Track Trip
+                        </button>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
