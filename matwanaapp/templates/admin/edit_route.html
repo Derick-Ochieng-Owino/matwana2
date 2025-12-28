@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+{% block title %}Edit Route - {{ route.origin }} → {{ route.destination }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">
+            <i class="fas fa-edit fa-fw mr-2"></i>Edit Route
+        </h1>
+        <a href="{{ url_for('manage_routes') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left fa-fw mr-1"></i> Back
+        </a>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Edit Route Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        Route Details - {{ route.origin }} → {{ route.destination }}
+                        {% if route.route_code %}({{ route.route_code }}){% endif %}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('edit_route', id=route.id) }}">
+                        <!-- Route Details -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="origin">Origin *</label>
+                                    <input type="text" class="form-control" id="origin" name="origin" 
+                                           value="{{ route.origin }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="destination">Destination *</label>
+                                    <input type="text" class="form-control" id="destination" 
+                                           name="destination" value="{{ route.destination }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Route Code -->
+                        <div class="form-group">
+                            <label for="route_code">Route Code</label>
+                            <input type="text" class="form-control" id="route_code" name="route_code" 
+                                   value="{{ route.route_code or '' }}">
+                            <small class="form-text text-muted">Unique identifier for the route</small>
+                        </div>
+
+                        <!-- Distance and Duration -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="distance">Distance (km) *</label>
+                                    <input type="number" class="form-control" id="distance" 
+                                           name="distance" value="{{ route.distance }}" 
+                                           required min="1" max="1000" step="0.1">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="duration">Duration (minutes) *</label>
+                                    <input type="number" class="form-control" id="duration" 
+                                           name="duration" value="{{ route.duration }}" 
+                                           required min="5" max="1440">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fare Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="fare">Fare (Ksh) *</label>
+                                    <input type="number" class="form-control" id="fare" 
+                                           name="fare" value="{{ route.fare }}" 
+                                           required min="10" max="10000">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="child_fare">Child Fare (Ksh)</label>
+                                    <input type="number" class="form-control" id="child_fare" 
+                                           name="child_fare" value="{{ route.child_fare or '' }}"
+                                           min="0" max="5000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Location Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="origin_county">Origin County</label>
+                                    <select class="form-control" id="origin_county" name="origin_county">
+                                        <option value="">Select County</option>
+                                        {% for county in counties %}
+                                            <option value="{{ county }}"
+                                                    {% if route.origin_county == county %}selected{% endif %}>
+                                                {{ county }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="destination_county">Destination County</label>
+                                    <select class="form-control" id="destination_county" name="destination_county">
+                                        <option value="">Select County</option>
+                                        {% for county in counties %}
+                                            <option value="{{ county }}"
+                                                    {% if route.destination_county == county %}selected{% endif %}>
+                                                {{ county }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="form-group">
+                            <label for="status">Status *</label>
+                            <select class="form-control" id="status" name="status" required>
+                                <option value="active" {% if route.status == 'active' %}selected{% endif %}>Active</option>
+                                <option value="inactive" {% if route.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                            </select>
+                        </div>
+
+                        <!-- SACCOs -->
+                        <div class="form-group">
+                            <label for="saccos">Operating SACCOs</label>
+                            <select class="form-control select2-multiple" id="saccos" name="saccos" multiple>
+                                {% for sacco in saccos %}
+                                    <option value="{{ sacco.id }}"
+                                            {% if sacco in route.saccos %}selected{% endif %}>
+                                        {{ sacco.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">Select SACCOs operating this route</small>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="form-group">
+                            <label for="description">Route Description</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="3">{{ route.description or '' }}</textarea>
+                        </div>
+
+                        <!-- Stops -->
+                        <div class="form-group">
+                            <label for="stops">Major Stops (One per line)</label>
+                            <textarea class="form-control" id="stops" name="stops" 
+                                      rows="3">{{ route.stops or '' }}</textarea>
+                            <small class="form-text text-muted">Enter each stop on a new line</small>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="form-group">
+                            <label for="notes">Additional Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" 
+                                      rows="2">{{ route.notes or '' }}</textarea>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save fa-fw mr-1"></i> Update Route
+                            </button>
+                            <a href="{{ url_for('manage_routes') }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Stats -->
+        <div class="col-lg-4">
+            <!-- Route Stats Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar fa-fw mr-1"></i>Route Statistics
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="h5 font-weight-bold text-primary">
+                            {{ route.origin }} → {{ route.destination }}
+                        </div>
+                        <div class="mb-3">
+                            <span class="badge badge-{{ 'success' if route.status == 'active' else 'secondary' }} badge-pill px-3 py-2">
+                                {{ route.status|title }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="small">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Distance:</span>
+                            <strong>{{ route.distance }} km</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Duration:</span>
+                            <strong>{{ route.duration }} minutes</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Fare:</span>
+                            <strong>Ksh {{ route.fare }}</strong>
+                        </div>
+                        {% if route.child_fare %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Child Fare:</span>
+                            <strong>Ksh {{ route.child_fare }}</strong>
+                        </div>
+                        {% endif %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Operating SACCOs:</span>
+                            <strong>{{ route.saccos|length }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Assigned Matatus:</span>
+                            <strong>{{ route.matatus|length }}</strong>
+                        </div>
+                        {% if route.created_at %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Created:</span>
+                            <strong>{{ route.created_at.strftime('%Y-%m-%d') }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if route.last_trip %}
+                        <div class="d-flex justify-content-between">
+                            <span>Last Trip:</span>
+                            <strong>{{ route.last_trip.strftime('%Y-%m-%d') if route.last_trip else 'Never' }}</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions Card -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-bolt fa-fw mr-1"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <a href="{{ url_for('add_trip', route_id=route.id) }}" 
+                           class="btn btn-success btn-block mb-2">
+                            <i class="fas fa-plus fa-fw mr-1"></i> Schedule Trip
+                        </a>
+                        <a href="{{ url_for('manage_matatus', route_id=route.id) }}" 
+                           class="btn btn-info btn-block mb-2">
+                            <i class="fas fa-bus fa-fw mr-1"></i> View Matatus
+                        </a>
+                        <a href="{{ url_for('route_trips', id=route.id) }}" 
+                           class="btn btn-warning btn-block">
+                            <i class="fas fa-calendar-alt fa-fw mr-1"></i> View Trips
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Select2 Script -->
+<script>
+    $(document).ready(function() {
+        $('.select2-multiple').select2({
+            placeholder: "Select SACCOs",
+            allowClear: true
+        });
+    });
+</script>
+{% endblock %}

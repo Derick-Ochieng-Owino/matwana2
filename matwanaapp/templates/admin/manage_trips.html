@@ -1,0 +1,423 @@
+{% extends 'base.html' %}
+{% block title %}Manage Trips{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">
+            <i class="fas fa-calendar-alt fa-fw mr-2"></i>Manage Trips
+        </h1>
+        <div>
+            <a href="{{ url_for('add_trip') }}" class="btn btn-primary">
+                <i class="fas fa-plus fa-fw mr-1"></i> Schedule Trip
+            </a>
+            <button class="btn btn-outline-primary" data-toggle="modal" data-target="#bulkScheduleModal">
+                <i class="fas fa-calendar-plus fa-fw mr-1"></i> Bulk Schedule
+            </button>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Today's Trips
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.today_trips }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Completed Trips
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.completed_trips }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Pending Trips
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.pending_trips }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Total Revenue
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">Ksh {{ stats.total_revenue }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Filter -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('manage_trips') }}" class="form-inline">
+                <div class="form-group mr-3">
+                    <label for="date" class="mr-2">Filter by Date:</label>
+                    <input type="date" class="form-control" id="date" name="date" 
+                           value="{{ filter_date if filter_date else '' }}">
+                </div>
+                <div class="form-group mr-3">
+                    <label for="status" class="mr-2">Status:</label>
+                    <select class="form-control" id="status" name="status">
+                        <option value="">All Status</option>
+                        <option value="scheduled" {% if filter_status == 'scheduled' %}selected{% endif %}>Scheduled</option>
+                        <option value="in_progress" {% if filter_status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                        <option value="completed" {% if filter_status == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="cancelled" {% if filter_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="form-group mr-3">
+                    <label for="route_id" class="mr-2">Route:</label>
+                    <select class="form-control" id="route_id" name="route_id">
+                        <option value="">All Routes</option>
+                        {% for route in routes %}
+                            <option value="{{ route.id }}" {% if filter_route == route.id %}selected{% endif %}>
+                                {{ route.origin }} → {{ route.destination }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter fa-fw mr-1"></i> Filter
+                </button>
+                <a href="{{ url_for('manage_trips') }}" class="btn btn-secondary ml-2">Clear</a>
+            </form>
+        </div>
+    </div>
+
+    <!-- Trips Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                {% if filter_date %}
+                    Trips for {{ filter_date }}
+                {% else %}
+                    Upcoming Trips
+                {% endif %}
+            </h6>
+            <div class="dropdown">
+                <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" 
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-download fa-fw mr-1"></i> Export
+                </button>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" href="{{ url_for('export_trips', format='csv') }}">CSV</a>
+                    <a class="dropdown-item" href="{{ url_for('export_trips', format='excel') }}">Excel</a>
+                    <a class="dropdown-item" href="{{ url_for('export_trips', format='pdf') }}">PDF</a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Trip Details</th>
+                            <th>Date & Time</th>
+                            <th>Matatu</th>
+                            <th>Driver</th>
+                            <th>Booked/Total</th>
+                            <th>Revenue</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for trip in trips %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <strong>{{ trip.route.origin }} → {{ trip.route.destination }}</strong><br>
+                                <small class="text-muted">Trip ID: {{ trip.trip_code }}</small>
+                            </td>
+                            <td>
+                                {{ trip.departure_time.strftime('%Y-%m-%d') }}<br>
+                                <strong>{{ trip.departure_time.strftime('%H:%M') }}</strong>
+                            </td>
+                            <td>
+                                {% if trip.matatu %}
+                                    {{ trip.matatu.registration_number }}<br>
+                                    <small>{{ trip.matatu.sacco.name }}</small>
+                                {% else %}
+                                    <span class="text-danger">Not Assigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if trip.driver %}
+                                    {{ trip.driver.name }}<br>
+                                    <small>{{ trip.driver.phone }}</small>
+                                {% else %}
+                                    <span class="text-muted">Not Assigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ trip.booked_seats }}/{{ trip.total_seats }}<br>
+                                <div class="progress" style="height: 5px;">
+                                    <div class="progress-bar bg-{{ 'success' if (trip.booked_seats/trip.total_seats*100) > 80 else 'warning' if (trip.booked_seats/trip.total_seats*100) > 50 else 'info' }}" 
+                                         role="progressbar" 
+                                         style="width: {{ (trip.booked_seats/trip.total_seats*100)|round(1) }}%">
+                                    </div>
+                                </div>
+                                <small>{{ (trip.booked_seats/trip.total_seats*100)|round(1) }}%</small>
+                            </td>
+                            <td>
+                                {% if trip.status == 'completed' %}
+                                    Ksh {{ trip.revenue or 0 }}
+                                {% else %}
+                                    <small class="text-muted">Pending</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ 
+                                    'primary' if trip.status == 'scheduled' 
+                                    else 'warning' if trip.status == 'in_progress' 
+                                    else 'success' if trip.status == 'completed' 
+                                    else 'danger' if trip.status == 'cancelled' 
+                                    else 'secondary' 
+                                }}">
+                                    {{ trip.status|replace('_', ' ')|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('trip_details', id=trip.id) }}" 
+                                       class="btn btn-primary" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if trip.status == 'scheduled' %}
+                                        <a href="{{ url_for('edit_trip', id=trip.id) }}" 
+                                           class="btn btn-info" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-danger" 
+                                                data-toggle="modal" data-target="#cancelModal{{ trip.id }}"
+                                                title="Cancel Trip">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Cancel Modal -->
+                        <div class="modal fade" id="cancelModal{{ trip.id }}" tabindex="-1" role="dialog">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Cancel Trip</h5>
+                                        <button type="button" class="close" data-dismiss="modal">
+                                            <span>&times;</span>
+                                        </button>
+                                    </div>
+                                    <form method="POST" action="{{ url_for('cancel_trip', id=trip.id) }}">
+                                        <div class="modal-body">
+                                            <p>Are you sure you want to cancel this trip?</p>
+                                            <div class="form-group">
+                                                <label for="cancel_reason">Cancellation Reason *</label>
+                                                <textarea class="form-control" id="cancel_reason" 
+                                                          name="cancel_reason" rows="3" required
+                                                          placeholder="Enter reason for cancellation"></textarea>
+                                            </div>
+                                            <div class="alert alert-warning">
+                                                <i class="fas fa-exclamation-triangle fa-fw"></i>
+                                                This will notify all booked passengers and refund their payments.
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                                            <button type="submit" class="btn btn-danger">Yes, Cancel Trip</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Schedule Modal -->
+    <div class="modal fade" id="bulkScheduleModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Bulk Schedule Trips</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <form method="POST" action="{{ url_for('bulk_schedule_trips') }}">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="route_id">Route *</label>
+                                    <select class="form-control" id="route_id" name="route_id" required>
+                                        <option value="">Select Route</option>
+                                        {% for route in routes %}
+                                            <option value="{{ route.id }}">
+                                                {{ route.origin }} → {{ route.destination }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="matatu_id">Matatu *</label>
+                                    <select class="form-control" id="matatu_id" name="matatu_id" required>
+                                        <option value="">Select Matatu</option>
+                                        {% for matatu in matatus %}
+                                            <option value="{{ matatu.id }}">
+                                                {{ matatu.registration_number }} - {{ matatu.sacco.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="start_date">Start Date *</label>
+                                    <input type="date" class="form-control" id="start_date" 
+                                           name="start_date" required min="{{ today }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="end_date">End Date *</label>
+                                    <input type="date" class="form-control" id="end_date" 
+                                           name="end_date" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="departure_time">Departure Time *</label>
+                                    <input type="time" class="form-control" id="departure_time" 
+                                           name="departure_time" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="days_of_week">Days of Week *</label>
+                                    <select class="form-control select2-multiple" id="days_of_week" 
+                                            name="days_of_week" multiple required>
+                                        <option value="0">Sunday</option>
+                                        <option value="1">Monday</option>
+                                        <option value="2">Tuesday</option>
+                                        <option value="3">Wednesday</option>
+                                        <option value="4">Thursday</option>
+                                        <option value="5">Friday</option>
+                                        <option value="6">Saturday</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="total_seats">Total Seats *</label>
+                                    <input type="number" class="form-control" id="total_seats" 
+                                           name="total_seats" required min="1" max="52">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="price">Price per Seat (Ksh) *</label>
+                                    <input type="number" class="form-control" id="price" 
+                                           name="price" required min="50">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle fa-fw"></i>
+                            This will create scheduled trips for each selected day between the start and end dates.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Schedule Trips</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Select2 Script -->
+<script>
+    $(document).ready(function() {
+        $('.select2-multiple').select2({
+            placeholder: "Select days",
+            allowClear: true
+        });
+    });
+</script>
+{% endblock %}

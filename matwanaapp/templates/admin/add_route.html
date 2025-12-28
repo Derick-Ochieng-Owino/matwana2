@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% block title %}Add New Route{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">
+            <i class="fas fa-route fa-fw mr-2"></i>Add New Route
+        </h1>
+        <a href="{{ url_for('manage_routes') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left fa-fw mr-1"></i> Back
+        </a>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Add Route Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Route Information</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_route') }}">
+                        <!-- Route Details -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="origin">Origin *</label>
+                                    <input type="text" class="form-control" id="origin" name="origin" 
+                                           required placeholder="e.g., Nairobi">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="destination">Destination *</label>
+                                    <input type="text" class="form-control" id="destination" 
+                                           name="destination" required placeholder="e.g., Mombasa">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Route Code -->
+                        <div class="form-group">
+                            <label for="route_code">Route Code (Optional)</label>
+                            <input type="text" class="form-control" id="route_code" name="route_code" 
+                                   placeholder="e.g., NBI-MSA">
+                            <small class="form-text text-muted">Unique identifier for the route</small>
+                        </div>
+
+                        <!-- Distance and Duration -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="distance">Distance (km) *</label>
+                                    <input type="number" class="form-control" id="distance" 
+                                           name="distance" required min="1" max="1000" step="0.1"
+                                           placeholder="e.g., 480.5">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="duration">Duration (minutes) *</label>
+                                    <input type="number" class="form-control" id="duration" 
+                                           name="duration" required min="5" max="1440"
+                                           placeholder="e.g., 420">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fare Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="fare">Fare (Ksh) *</label>
+                                    <input type="number" class="form-control" id="fare" 
+                                           name="fare" required min="10" max="10000"
+                                           placeholder="e.g., 1200">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="child_fare">Child Fare (Ksh)</label>
+                                    <input type="number" class="form-control" id="child_fare" 
+                                           name="child_fare" min="0" max="5000"
+                                           placeholder="e.g., 600">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Location Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="origin_county">Origin County</label>
+                                    <select class="form-control" id="origin_county" name="origin_county">
+                                        <option value="">Select County</option>
+                                        {% for county in counties %}
+                                            <option value="{{ county }}">{{ county }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="destination_county">Destination County</label>
+                                    <select class="form-control" id="destination_county" name="destination_county">
+                                        <option value="">Select County</option>
+                                        {% for county in counties %}
+                                            <option value="{{ county }}">{{ county }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="form-group">
+                            <label for="status">Status *</label>
+                            <select class="form-control" id="status" name="status" required>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+
+                        <!-- SACCOs -->
+                        <div class="form-group">
+                            <label for="saccos">Operating SACCOs</label>
+                            <select class="form-control select2-multiple" id="saccos" name="saccos" multiple>
+                                {% for sacco in saccos %}
+                                    <option value="{{ sacco.id }}">{{ sacco.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">Select SACCOs operating this route (Ctrl+Click for multiple)</small>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="form-group">
+                            <label for="description">Route Description</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="3" placeholder="e.g., Major highway route with scenic views"></textarea>
+                        </div>
+
+                        <!-- Stops -->
+                        <div class="form-group">
+                            <label for="stops">Major Stops (One per line)</label>
+                            <textarea class="form-control" id="stops" name="stops" 
+                                      rows="3" placeholder="e.g., Athi River
+Makutano
+Voi
+Mariakani"></textarea>
+                            <small class="form-text text-muted">Enter each stop on a new line</small>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus fa-fw mr-1"></i> Add Route
+                            </button>
+                            <a href="{{ url_for('manage_routes') }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Help -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-info-circle fa-fw mr-1"></i>Route Guidelines
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <h6 class="font-weight-bold text-primary">Distance & Duration</h6>
+                    <p class="small">Provide accurate values for better trip planning and fare calculation.</p>
+                    
+                    <h6 class="font-weight-bold text-primary mt-3">Fare Structure</h6>
+                    <p class="small">
+                        <strong>Adult Fare:</strong> Standard passenger fare<br>
+                        <strong>Child Fare:</strong> Optional discount for children (under 12)
+                    </p>
+                    
+                    <h6 class="font-weight-bold text-primary mt-3">Route Code</h6>
+                    <p class="small">Use airport-style codes (NBI-MSA) for easy identification.</p>
+                    
+                    <h6 class="font-weight-bold text-primary mt-3">Stops</h6>
+                    <p class="small">List major stops in order from origin to destination.</p>
+                    
+                    <div class="alert alert-info small mt-3">
+                        <i class="fas fa-lightbulb fa-fw mr-1"></i>
+                        <strong>Tip:</strong> You can assign SACCOs now or update them later.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Select2 Script -->
+<script>
+    $(document).ready(function() {
+        $('.select2-multiple').select2({
+            placeholder: "Select SACCOs",
+            allowClear: true
+        });
+    });
+</script>
+{% endblock %}

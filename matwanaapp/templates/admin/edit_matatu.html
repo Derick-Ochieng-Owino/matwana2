@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+{% block title %}Edit Matatu - {{ matatu.registration_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">
+            <i class="fas fa-edit fa-fw mr-2"></i>Edit Matatu
+        </h1>
+        <a href="{{ url_for('manage_matatus') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left fa-fw mr-1"></i> Back
+        </a>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Edit Matatu Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        Matatu Details - {{ matatu.registration_number }}
+                        {% if matatu.name %}({{ matatu.name }}){% endif %}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('edit_matatu', id=matatu.id) }}">
+                        <!-- Registration Details -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="registration_number">Registration Number *</label>
+                                    <input type="text" class="form-control" id="registration_number" 
+                                           name="registration_number" value="{{ matatu.registration_number }}" 
+                                           required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="name">Matatu Name (Optional)</label>
+                                    <input type="text" class="form-control" id="name" name="name" 
+                                           value="{{ matatu.name or '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SACCO Selection -->
+                        <div class="form-group">
+                            <label for="sacco_id">SACCO *</label>
+                            <select class="form-control" id="sacco_id" name="sacco_id" required>
+                                {% for sacco in saccos %}
+                                    <option value="{{ sacco.id }}" 
+                                            {% if matatu.sacco_id == sacco.id %}selected{% endif %}>
+                                        {{ sacco.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Vehicle Details -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="make">Make/Model *</label>
+                                    <input type="text" class="form-control" id="make" name="make" 
+                                           value="{{ matatu.make }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="year">Year of Manufacture</label>
+                                    <input type="number" class="form-control" id="year" name="year" 
+                                           value="{{ matatu.year or '' }}" min="1990" max="2024">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Capacity and Route -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="capacity">Passenger Capacity *</label>
+                                    <input type="number" class="form-control" id="capacity" 
+                                           name="capacity" value="{{ matatu.capacity }}" 
+                                           required min="14" max="52">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="route_id">Assigned Route</label>
+                                    <select class="form-control" id="route_id" name="route_id">
+                                        <option value="">Select Route</option>
+                                        {% for route in routes %}
+                                            <option value="{{ route.id }}"
+                                                    {% if matatu.route_id == route.id %}selected{% endif %}>
+                                                {{ route.origin }} → {{ route.destination }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status and Maintenance -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="status">Status *</label>
+                                    <select class="form-control" id="status" name="status" required>
+                                        <option value="active" {% if matatu.status == 'active' %}selected{% endif %}>Active</option>
+                                        <option value="inactive" {% if matatu.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                                        <option value="maintenance" {% if matatu.status == 'maintenance' %}selected{% endif %}>Maintenance</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="last_maintenance">Last Maintenance Date</label>
+                                    <input type="date" class="form-control" id="last_maintenance" 
+                                           name="last_maintenance" 
+                                           value="{{ matatu.last_maintenance.strftime('%Y-%m-%d') if matatu.last_maintenance else '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Insurance and Next Maintenance -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="insurance_expiry">Insurance Expiry Date</label>
+                                    <input type="date" class="form-control" id="insurance_expiry" 
+                                           name="insurance_expiry" 
+                                           value="{{ matatu.insurance_expiry.strftime('%Y-%m-%d') if matatu.insurance_expiry else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="next_maintenance">Next Maintenance Due</label>
+                                    <input type="date" class="form-control" id="next_maintenance" 
+                                           name="next_maintenance" 
+                                           value="{{ matatu.next_maintenance.strftime('%Y-%m-%d') if matatu.next_maintenance else '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Driver Assignment -->
+                        <div class="form-group">
+                            <label for="driver_id">Assigned Driver</label>
+                            <select class="form-control" id="driver_id" name="driver_id">
+                                <option value="">No Driver Assigned</option>
+                                {% for driver in drivers %}
+                                    <option value="{{ driver.id }}"
+                                            {% if matatu.driver_id == driver.id %}selected{% endif %}>
+                                        {{ driver.name }} - {{ driver.license_number }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Additional Information -->
+                        <div class="form-group">
+                            <label for="features">Special Features</label>
+                            <textarea class="form-control" id="features" name="features" 
+                                      rows="2">{{ matatu.features or '' }}</textarea>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="form-group">
+                            <label for="notes">Additional Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" 
+                                      rows="2">{{ matatu.notes or '' }}</textarea>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save fa-fw mr-1"></i> Update Matatu
+                            </button>
+                            <a href="{{ url_for('manage_matatus') }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Stats -->
+        <div class="col-lg-4">
+            <!-- Matatu Stats Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar fa-fw mr-1"></i>Matatu Statistics
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <div class="h5 font-weight-bold text-primary mb-3">
+                            {{ matatu.registration_number }}
+                        </div>
+                        <div class="mb-3">
+                            <span class="badge badge-{{ 'success' if matatu.status == 'active' else 'warning' if matatu.status == 'maintenance' else 'secondary' }} badge-pill px-3 py-2">
+                                {{ matatu.status|title }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="small">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>SACCO:</span>
+                            <strong>{{ matatu.sacco.name }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Capacity:</span>
+                            <strong>{{ matatu.capacity }} seats</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Make/Model:</span>
+                            <strong>{{ matatu.make }}</strong>
+                        </div>
+                        {% if matatu.year %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Year:</span>
+                            <strong>{{ matatu.year }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if matatu.route %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Route:</span>
+                            <strong>{{ matatu.route.origin }} → {{ matatu.route.destination }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if matatu.driver %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Driver:</span>
+                            <strong>{{ matatu.driver.name }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if matatu.insurance_expiry %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Insurance Expiry:</span>
+                            <strong class="{{ 'text-danger' if matatu.insurance_expiry < today else 'text-success' }}">
+                                {{ matatu.insurance_expiry.strftime('%Y-%m-%d') }}
+                            </strong>
+                        </div>
+                        {% endif %}
+                        {% if matatu.next_maintenance %}
+                        <div class="d-flex justify-content-between">
+                            <span>Next Maintenance:</span>
+                            <strong class="{{ 'text-warning' if matatu.next_maintenance < today_plus_30 else 'text-success' }}">
+                                {{ matatu.next_maintenance.strftime('%Y-%m-%d') }}
+                            </strong>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
