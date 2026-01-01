@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'admin/base.html' %}
 {% block title %}Manage Trips{% endblock %}
 
 {% block content %}
@@ -9,7 +9,7 @@
             <i class="fas fa-calendar-alt fa-fw mr-2"></i>Manage Trips
         </h1>
         <div>
-            <a href="{{ url_for('add_trip') }}" class="btn btn-primary">
+            <a href="{% url 'add_trip' %}" class="btn btn-primary">
                 <i class="fas fa-plus fa-fw mr-1"></i> Schedule Trip
             </a>
             <button class="btn btn-outline-primary" data-toggle="modal" data-target="#bulkScheduleModal">
@@ -19,18 +19,16 @@
     </div>
 
     <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
 
     <!-- Statistics Cards -->
     <div class="row mb-4">
@@ -107,7 +105,7 @@
     <!-- Date Filter -->
     <div class="card shadow mb-4">
         <div class="card-body">
-            <form method="GET" action="{{ url_for('manage_trips') }}" class="form-inline">
+            <form method="GET" action="{% url 'manage_trips' %}" class="form-inline">
                 <div class="form-group mr-3">
                     <label for="date" class="mr-2">Filter by Date:</label>
                     <input type="date" class="form-control" id="date" name="date" 
@@ -137,7 +135,7 @@
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-filter fa-fw mr-1"></i> Filter
                 </button>
-                <a href="{{ url_for('manage_trips') }}" class="btn btn-secondary ml-2">Clear</a>
+                <a href="{% url 'manage_trips' %}" class="btn btn-secondary ml-2">Clear</a>
             </form>
         </div>
     </div>
@@ -158,9 +156,9 @@
                     <i class="fas fa-download fa-fw mr-1"></i> Export
                 </button>
                 <div class="dropdown-menu">
-                    <a class="dropdown-item" href="{{ url_for('export_trips', format='csv') }}">CSV</a>
-                    <a class="dropdown-item" href="{{ url_for('export_trips', format='excel') }}">Excel</a>
-                    <a class="dropdown-item" href="{{ url_for('export_trips', format='pdf') }}">PDF</a>
+                    <a class="dropdown-item" href="{% url 'export_trips', format='csv' %}">CSV</a>
+                    <a class="dropdown-item" href="{% url 'export_trips', format='excel' %}">Excel</a>
+                    <a class="dropdown-item" href="{% url 'export_trips', format='pdf' %}">PDF</a>
                 </div>
             </div>
         </div>
@@ -238,12 +236,12 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ url_for('trip_details', id=trip.id) }}" 
+                                    <a href="{% url 'trip_details', id=trip.id %}" 
                                        class="btn btn-primary" title="View Details">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     {% if trip.status == 'scheduled' %}
-                                        <a href="{{ url_for('edit_trip', id=trip.id) }}" 
+                                        <a href="{% url 'edit_trip', id=trip.id %}" 
                                            class="btn btn-info" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
@@ -267,7 +265,7 @@
                                             <span>&times;</span>
                                         </button>
                                     </div>
-                                    <form method="POST" action="{{ url_for('cancel_trip', id=trip.id) }}">
+                                    <form method="POST" action="{% url 'cancel_trip', id=trip.id %}">
                                         <div class="modal-body">
                                             <p>Are you sure you want to cancel this trip?</p>
                                             <div class="form-group">
@@ -306,7 +304,7 @@
                         <span>&times;</span>
                     </button>
                 </div>
-                <form method="POST" action="{{ url_for('bulk_schedule_trips') }}">
+                <form method="POST" action="{% url 'bulk_schedule_trips' %}">
                     <div class="modal-body">
                         <div class="row">
                             <div class="col-md-6">

@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'admin/base.html' %}
 {% block title %}Manage Matatus{% endblock %}
 
 {% block content %}
@@ -8,24 +8,22 @@
         <h1 class="h3 text-gray-800">
             <i class="fas fa-bus fa-fw mr-2"></i>Manage Matatus
         </h1>
-        <a href="{{ url_for('add_matatu') }}" class="btn btn-primary">
+        <a href="{% url 'add_matatu' %}" class="btn btn-primary">
             <i class="fas fa-plus fa-fw mr-1"></i> Add Matatu
         </a>
     </div>
 
     <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
 
     <!-- Statistics Cards -->
     <div class="row mb-4">
@@ -109,10 +107,10 @@
                     <i class="fas fa-filter fa-fw mr-1"></i> Filter
                 </button>
                 <div class="dropdown-menu">
-                    <a class="dropdown-item" href="{{ url_for('manage_matatus') }}">All</a>
-                    <a class="dropdown-item" href="{{ url_for('manage_matatus', status='active') }}">Active</a>
-                    <a class="dropdown-item" href="{{ url_for('manage_matatus', status='inactive') }}">Inactive</a>
-                    <a class="dropdown-item" href="{{ url_for('manage_matatus', sacco=sacco_filter) }}">By SACCO</a>
+                    <a class="dropdown-item" href="{% url 'manage_matatus' %}">All</a>
+                    <a class="dropdown-item" href="{% url 'manage_matatus' %}?status=active">Active</a>
+                    <a class="dropdown-item" href="{% url 'manage_matatus' %}?status=inactive">Inactive</a>
+                    <a class="dropdown-item" href="{% url 'manage_matatus' %}?sacco={{ sacco_filter }}">By SACCO</a>
                 </div>
             </div>
         </div>
@@ -149,24 +147,27 @@
                             </td>
                             <td>{{ matatu.capacity }} seats</td>
                             <td>
-                                <span class="badge badge-{{ 'success' if matatu.status == 'active' else 'warning' if matatu.status == 'maintenance' else 'secondary' }}">
+                                <span class="badge 
+                                    {% if matatu.status == 'active' %}badge-success
+                                    {% elif matatu.status == 'maintenance' %}badge-warning
+                                    {% else %}badge-secondary{% endif %}">
                                     {{ matatu.status|title }}
                                 </span>
                             </td>
                             <td>
                                 {% if matatu.last_maintenance %}
-                                    {{ matatu.last_maintenance.strftime('%Y-%m-%d') }}
+                                    {{ matatu.last_maintenance|date:"Y-m-d" }}
                                 {% else %}
                                     <span class="text-muted">Never</span>
                                 {% endif %}
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ url_for('edit_matatu', id=matatu.id) }}" 
+                                    <a href="{% url 'edit_matatu' matatu.id %}" 
                                        class="btn btn-info" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <a href="{{ url_for('matatu_details', id=matatu.id) }}" 
+                                    <a href="{% url 'matatu_details' matatu.id %}" 
                                        class="btn btn-primary" title="View Details">
                                         <i class="fas fa-eye"></i>
                                     </a>
@@ -195,7 +196,7 @@
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                                        <form action="{{ url_for('delete_matatu', id=matatu.id) }}" method="POST" style="display: inline;">
+                                        <form action="{% url 'delete_matatu' matatu.id %}" method="POST" style="display: inline;">
                                             <button type="submit" class="btn btn-danger">Delete</button>
                                         </form>
                                     </div>

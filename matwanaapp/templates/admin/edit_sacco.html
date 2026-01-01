@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'admin/base.html' %}
 {% block title %}Edit SACCO - {{ sacco.name }}{% endblock %}
 
 {% block content %}
@@ -8,24 +8,22 @@
         <h1 class="h3 text-gray-800">
             <i class="fas fa-edit fa-fw mr-2"></i>Edit SACCO
         </h1>
-        <a href="{{ url_for('manage_sacco') }}" class="btn btn-secondary">
+        <a href="{% url 'manage_sacco' %}" class="btn btn-secondary">
             <i class="fas fa-arrow-left fa-fw mr-1"></i> Back
         </a>
     </div>
 
     <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
 
     <!-- Edit SACCO Form -->
     <div class="card shadow mb-4">
@@ -33,7 +31,7 @@
             <h6 class="m-0 font-weight-bold text-primary">SACCO Details</h6>
         </div>
         <div class="card-body">
-            <form method="POST" action="{{ url_for('edit_sacco', id=sacco.id) }}" enctype="multipart/form-data">
+            <form method="POST" action="{% url 'edit_sacco', id=sacco.id %}" enctype="multipart/form-data">
                 <!-- Basic Information -->
                 <div class="row">
                     <div class="col-md-6">
@@ -125,7 +123,7 @@
                     </div>
                     {% if sacco.logo %}
                         <small class="form-text text-muted">
-                            Current logo: <a href="{{ url_for('static', filename='uploads/logos/' + sacco.logo) }}" target="_blank">View</a>
+                            Current logo: <a href="{% static  filename='uploads/logos/' + sacco.logo %}" target="_blank">View</a>
                         </small>
                     {% endif %}
                 </div>
@@ -135,7 +133,7 @@
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save fa-fw mr-1"></i> Update SACCO
                     </button>
-                    <a href="{{ url_for('manage_sacco') }}" class="btn btn-secondary">Cancel</a>
+                    <a href="{% url 'manage_sacco' %}" class="btn btn-secondary">Cancel</a>
                 </div>
             </form>
         </div>

@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'admin/base.html' %}
 {% block title %}Edit Route - {{ route.origin }} → {{ route.destination }}{% endblock %}
 
 {% block content %}
@@ -8,24 +8,22 @@
         <h1 class="h3 text-gray-800">
             <i class="fas fa-edit fa-fw mr-2"></i>Edit Route
         </h1>
-        <a href="{{ url_for('manage_routes') }}" class="btn btn-secondary">
+        <a href="{% url 'manage_routes' %}" class="btn btn-secondary">
             <i class="fas fa-arrow-left fa-fw mr-1"></i> Back
         </a>
     </div>
 
     <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
 
     <!-- Edit Route Form -->
     <div class="row">
@@ -38,7 +36,7 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('edit_route', id=route.id) }}">
+                    <form method="POST" action="{% url 'edit_route', id=route.id %}">
                         <!-- Route Details -->
                         <div class="row">
                             <div class="col-md-6">
@@ -187,7 +185,7 @@
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save fa-fw mr-1"></i> Update Route
                             </button>
-                            <a href="{{ url_for('manage_routes') }}" class="btn btn-secondary">Cancel</a>
+                            <a href="{% url 'manage_routes' %}" class="btn btn-secondary">Cancel</a>
                         </div>
                     </form>
                 </div>
@@ -269,15 +267,15 @@
                 </div>
                 <div class="card-body">
                     <div class="text-center">
-                        <a href="{{ url_for('add_trip', route_id=route.id) }}" 
+                        <a href="{% url 'add_trip', route_id=route.id %}" 
                            class="btn btn-success btn-block mb-2">
                             <i class="fas fa-plus fa-fw mr-1"></i> Schedule Trip
                         </a>
-                        <a href="{{ url_for('manage_matatus', route_id=route.id) }}" 
+                        <a href="{% url 'manage_matatus', route_id=route.id %}" 
                            class="btn btn-info btn-block mb-2">
                             <i class="fas fa-bus fa-fw mr-1"></i> View Matatus
                         </a>
-                        <a href="{{ url_for('route_trips', id=route.id) }}" 
+                        <a href="{% url 'route_trips', id=route.id %}" 
                            class="btn btn-warning btn-block">
                             <i class="fas fa-calendar-alt fa-fw mr-1"></i> View Trips
                         </a>

@@ -1184,7 +1184,8 @@ def admin_edit_notification(request, notification_id):
     """Edit notification"""
     if 'user_id' not in request.session:
         messages.error(request, 'Please login')
-        return redirect('login')
+        return redirect('login')  
+        
     
     try:
         admin = User.objects.get(id=request.session['user_id'], user_type='super_admin')

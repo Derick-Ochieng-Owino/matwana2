@@ -1,0 +1,589 @@
+{% extends 'admin/base.html' %}
+{% block title %}Edit Notification - {{ notification.subject }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">
+            <i class="fas fa-edit fa-fw mr-2"></i>Edit Notification
+        </h1>
+        <a href="{% url 'manage_notifications' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left fa-fw mr-1"></i> Back
+        </a>
+    </div>
+
+    <!-- Flash Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Edit Notification Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        Notification Details - {{ notification.subject }}
+                    </h6>
+                    <span class="badge badge-{{ 
+                        'success' if notification.status == 'sent' 
+                        else 'warning' if notification.status == 'scheduled' 
+                        else 'secondary' if notification.status == 'draft' 
+                        else 'danger' 
+                    }}">
+                        {{ notification.status|title }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{% 'edit_notification', id=notification.id %}">
+                        <!-- Notification Type -->
+                        <div class="form-group">
+                            <label for="type">Notification Type *</label>
+                            <select class="form-control" id="type" name="type" required 
+                                    onchange="updateFormForType()" {{ 'disabled' if notification.status == 'sent' }}>
+                                <option value="email" {% if notification.type == 'email' %}selected{% endif %}>Email</option>
+                                <option value="sms" {% if notification.type == 'sms' %}selected{% endif %}>SMS</option>
+                                <option value="push" {% if notification.type == 'push' %}selected{% endif %}>Push Notification</option>
+                            </select>
+                        </div>
+
+                        <!-- Subject/Title -->
+                        <div class="form-group" id="subjectGroup">
+                            <label for="subject">Subject *</label>
+                            <input type="text" class="form-control" id="subject" name="subject" 
+                                   value="{{ notification.subject }}" required>
+                        </div>
+
+                        <!-- Message Content -->
+                        <div class="form-group">
+                            <label for="message">Message Content *</label>
+                            <textarea class="form-control" id="message" name="message" 
+                                      rows="6" required oninput="updateCharCount()">{{ notification.message }}</textarea>
+                            <small class="form-text text-muted" id="charCounter">
+                                Characters: {{ notification.message|length }}
+                            </small>
+                        </div>
+
+                        <!-- Recipients -->
+                        <div class="form-group">
+                            <label for="send_to">Send To *</label>
+                            <select class="form-control" id="send_to" name="send_to" required 
+                                    {{ 'disabled' if notification.status == 'sent' }}>
+                                <option value="all" {% if notification.send_to == 'all' %}selected{% endif %}>All Users (Passengers, Drivers, SACCO Admins)</option>
+                                <option value="passengers" {% if notification.send_to == 'passengers' %}selected{% endif %}>Passengers Only</option>
+                                <option value="drivers" {% if notification.send_to == 'drivers' %}selected{% endif %}>Drivers Only</option>
+                                <option value="sacco_admins" {% if notification.send_to == 'sacco_admins' %}selected{% endif %}>SACCO Admins Only</option>
+                                <option value="specific_sacco" {% if notification.send_to == 'specific_sacco' %}selected{% endif %}>Specific SACCO Members</option>
+                                <option value="custom" {% if notification.send_to == 'custom' %}selected{% endif %}>Custom List</option>
+                            </select>
+                        </div>
+
+                        <!-- SACCO Selection (Conditional) -->
+                        <div class="form-group" id="saccoGroup" style="display: none;">
+                            <label for="sacco_id">Select SACCO</label>
+                            <select class="form-control" id="sacco_id" name="sacco_id" 
+                                    {{ 'disabled' if notification.status == 'sent' }}>
+                                <option value="">Select SACCO</option>
+                                {% for sacco in saccos %}
+                                    <option value="{{ sacco.id }}" 
+                                            {% if notification.sacco_id == sacco.id %}selected{% endif %}>
+                                        {{ sacco.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Custom Recipients (Conditional) -->
+                        <div class="form-group" id="customGroup" style="display: none;">
+                            <label for="custom_recipients">Custom Recipients (Emails/Phone Numbers)</label>
+                            <textarea class="form-control" id="custom_recipients" name="custom_recipients" 
+                                      rows="3" {{ 'disabled' if notification.status == 'sent' }}>{{ notification.custom_recipients or '' }}</textarea>
+                            <small class="form-text text-muted">
+                                For emails: user@example.com, user2@example.com<br>
+                                For SMS: +254712345678, +254798765432
+                            </small>
+                        </div>
+
+                        <!-- Schedule Options -->
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" 
+                                       id="schedule" name="schedule" onchange="toggleSchedule()"
+                                       {{ 'disabled' if notification.status == 'sent' }}>
+                                <label class="form-check-label" for="schedule">
+                                    Schedule for later delivery
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Schedule Fields (Conditional) -->
+                        <div id="scheduleFields" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="scheduled_for">Schedule Date & Time *</label>
+                                        <input type="datetime-local" class="form-control" id="scheduled_for" 
+                                               name="scheduled_for" value="{{ notification.scheduled_for.strftime('%Y-%m-%dT%H:%M') if notification.scheduled_for else '' }}"
+                                               min="{{ now }}" {{ 'disabled' if notification.status == 'sent' }}>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="timezone">Timezone</label>
+                                        <select class="form-control" id="timezone" name="timezone" 
+                                                {{ 'disabled' if notification.status == 'sent' }}>
+                                            <option value="Africa/Nairobi" {% if notification.timezone == 'Africa/Nairobi' %}selected{% endif %}>East Africa Time (GMT+3)</option>
+                                            <option value="UTC" {% if notification.timezone == 'UTC' %}selected{% endif %}>UTC</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Priority -->
+                        <div class="form-group">
+                            <label for="priority">Priority</label>
+                            <select class="form-control" id="priority" name="priority" 
+                                    {{ 'disabled' if notification.status == 'sent' }}>
+                                <option value="low" {% if notification.priority == 'low' %}selected{% endif %}>Low</option>
+                                <option value="normal" {% if notification.priority == 'normal' or not notification.priority %}selected{% endif %}>Normal</option>
+                                <option value="high" {% if notification.priority == 'high' %}selected{% endif %}>High</option>
+                                <option value="urgent" {% if notification.priority == 'urgent' %}selected{% endif %}>Urgent</option>
+                            </select>
+                        </div>
+
+                        <!-- Tags/Categories -->
+                        <div class="form-group">
+                            <label for="tags">Tags (Optional)</label>
+                            <input type="text" class="form-control" id="tags" name="tags" 
+                                   value="{{ notification.tags or '' }}"
+                                   {{ 'disabled' if notification.status == 'sent' }}>
+                            <small class="form-text text-muted">
+                                Separate tags with commas
+                            </small>
+                        </div>
+
+                        <!-- Email Specific Fields (Conditional) -->
+                        <div id="emailFields" style="display: none;">
+                            <div class="form-group">
+                                <label for="template">Email Template</label>
+                                <select class="form-control" id="template" name="template" 
+                                        {{ 'disabled' if notification.status == 'sent' }}>
+                                    <option value="" {% if not notification.template %}selected{% endif %}>Default Template</option>
+                                    <option value="promotional" {% if notification.template == 'promotional' %}selected{% endif %}>Promotional</option>
+                                    <option value="transactional" {% if notification.template == 'transactional' %}selected{% endif %}>Transactional</option>
+                                    <option value="newsletter" {% if notification.template == 'newsletter' %}selected{% endif %}>Newsletter</option>
+                                    <option value="alert" {% if notification.template == 'alert' %}selected{% endif %}>Alert</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="reply_to">Reply-To Email (Optional)</label>
+                                <input type="email" class="form-control" id="reply_to" name="reply_to" 
+                                       value="{{ notification.reply_to or '' }}"
+                                       {{ 'disabled' if notification.status == 'sent' }}>
+                            </div>
+                        </div>
+
+                        <!-- SMS Specific Fields (Conditional) -->
+                        <div id="smsFields" style="display: none;">
+                            <div class="form-group">
+                                <label for="sender_id">Sender ID (Optional)</label>
+                                <input type="text" class="form-control" id="sender_id" name="sender_id" 
+                                       value="{{ notification.sender_id or '' }}" maxlength="11"
+                                       placeholder="e.g., SACCO"
+                                       {{ 'disabled' if notification.status == 'sent' }}>
+                            </div>
+                        </div>
+
+                        <!-- Push Notification Fields (Conditional) -->
+                        <div id="pushFields" style="display: none;">
+                            <div class="form-group">
+                                <label for="icon">Icon URL (Optional)</label>
+                                <input type="url" class="form-control" id="icon" name="icon" 
+                                       value="{{ notification.icon or '' }}"
+                                       placeholder="https://example.com/icon.png"
+                                       {{ 'disabled' if notification.status == 'sent' }}>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="image">Image URL (Optional)</label>
+                                <input type="url" class="form-control" id="image" name="image" 
+                                       value="{{ notification.image or '' }}"
+                                       placeholder="https://example.com/image.jpg"
+                                       {{ 'disabled' if notification.status == 'sent' }}>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="action_url">Action URL (Optional)</label>
+                                <input type="url" class="form-control" id="action_url" name="action_url" 
+                                       value="{{ notification.action_url or '' }}"
+                                       placeholder="https://example.com/action"
+                                       {{ 'disabled' if notification.status == 'sent' }}>
+                            </div>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="form-group">
+                            <label for="status">Status *</label>
+                            <select class="form-control" id="status" name="status" required 
+                                    {{ 'disabled' if notification.status == 'sent' }}>
+                                <option value="draft" {% if notification.status == 'draft' %}selected{% endif %}>Draft</option>
+                                <option value="scheduled" {% if notification.status == 'scheduled' %}selected{% endif %}>Schedule for Later</option>
+                                <option value="ready" {% if notification.status == 'ready' %}selected{% endif %}>Ready to Send</option>
+                            </select>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="form-group">
+                            {% if notification.status != 'sent' %}
+                                <button type="submit" class="btn btn-primary" id="submitBtn">
+                                    <i class="fas fa-save fa-fw mr-1"></i> Update Notification
+                                </button>
+                                <button type="submit" name="action" value="send" class="btn btn-success" id="sendBtn">
+                                    <i class="fas fa-paper-plane fa-fw mr-1"></i> Update & Send Now
+                                </button>
+                            {% endif %}
+                            <a href="{% url 'manage_notifications' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Stats -->
+        <div class="col-lg-4">
+            <!-- Notification Stats Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar fa-fw mr-1"></i>Notification Statistics
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="h5 font-weight-bold text-primary mb-2">
+                            {{ notification.type|upper }}
+                        </div>
+                        <div class="mb-3">
+                            <span class="badge badge-{{ 
+                                'success' if notification.status == 'sent' 
+                                else 'warning' if notification.status == 'scheduled' 
+                                else 'secondary' 
+                            }} badge-pill px-3 py-2">
+                                {{ notification.status|title }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="small">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Created:</span>
+                            <strong>{{ notification.created_at.strftime('%Y-%m-%d %H:%M') }}</strong>
+                        </div>
+                        {% if notification.sent_at %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Sent:</span>
+                            <strong>{{ notification.sent_at.strftime('%Y-%m-%d %H:%M') }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if notification.scheduled_for %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Scheduled For:</span>
+                            <strong>{{ notification.scheduled_for.strftime('%Y-%m-%d %H:%M') }}</strong>
+                        </div>
+                        {% endif %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Recipients:</span>
+                            <strong>{{ notification.recipient_count }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Priority:</span>
+                            <strong>{{ notification.priority|title }}</strong>
+                        </div>
+                        {% if notification.stats %}
+                            <hr>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Delivered:</span>
+                                <strong>{{ notification.stats.delivered or 0 }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Opened:</span>
+                                <strong>{{ notification.stats.opened or 0 }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Clicked:</span>
+                                <strong>{{ notification.stats.clicked or 0 }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Bounced:</span>
+                                <strong>{{ notification.stats.bounced or 0 }}</strong>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions Card -->
+            {% if notification.status != 'sent' %}
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-bolt fa-fw mr-1"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <button type="button" class="btn btn-success btn-block mb-2" 
+                                data-toggle="modal" data-target="#sendNowModal">
+                            <i class="fas fa-paper-plane fa-fw mr-1"></i> Send Now
+                        </button>
+                        {% if notification.status == 'scheduled' %}
+                        <button type="button" class="btn btn-warning btn-block mb-2" 
+                                data-toggle="modal" data-target="#cancelScheduleModal">
+                            <i class="fas fa-calendar-times fa-fw mr-1"></i> Cancel Schedule
+                        </button>
+                        {% endif %}
+                        <button type="button" class="btn btn-info btn-block mb-2" 
+                                data-toggle="modal" data-target="#duplicateModal">
+                            <i class="fas fa-copy fa-fw mr-1"></i> Duplicate
+                        </button>
+                        <button type="button" class="btn btn-danger btn-block" 
+                                data-toggle="modal" data-target="#deleteModal">
+                            <i class="fas fa-trash fa-fw mr-1"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Send Now Modal -->
+<div class="modal fade" id="sendNowModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Send Notification Now</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{% url 'send_notification', id=notification.id %}">
+                <div class="modal-body">
+                    <p>Send notification <strong>"{{ notification.subject }}"</strong> immediately?</p>
+                    <div class="alert alert-info">
+                        <strong>Details:</strong><br>
+                        Type: {{ notification.type|upper }}<br>
+                        Recipients: {{ notification.recipient_count }} users
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Send Now</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Schedule Modal -->
+{% if notification.status == 'scheduled' %}
+<div class="modal fade" id="cancelScheduleModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancel Scheduled Delivery</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{% url 'cancel_scheduled_notification', id=notification.id %}">
+                <div class="modal-body">
+                    <p>Cancel scheduled delivery for <strong>"{{ notification.subject }}"</strong>?</p>
+                    <p>This will change the status to Draft.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                    <button type="submit" class="btn btn-warning">Yes, Cancel Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Duplicate Modal -->
+<div class="modal fade" id="duplicateModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Duplicate Notification</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{% url 'duplicate_notification', id=notification.id %}">
+                <div class="modal-body">
+                    <p>Create a copy of <strong>"{{ notification.subject }}"</strong>?</p>
+                    <div class="form-group">
+                        <label for="new_subject">New Subject</label>
+                        <input type="text" class="form-control" id="new_subject" name="new_subject" 
+                               value="Copy of {{ notification.subject }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_status">Status for Copy</label>
+                        <select class="form-control" id="new_status" name="new_status" required>
+                            <option value="draft">Draft</option>
+                            <option value="ready">Ready to Send</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info">Duplicate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Notification</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong>"{{ notification.subject }}"</strong>?</p>
+                <p class="text-danger"><small>This action cannot be undone.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <form action="{% url 'delete_notification', id=notification.id %}" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Update form based on notification type
+    function updateFormForType() {
+        const type = document.getElementById('type').value;
+        
+        // Hide all type-specific fields
+        document.getElementById('emailFields').style.display = 'none';
+        document.getElementById('smsFields').style.display = 'none';
+        document.getElementById('pushFields').style.display = 'none';
+        
+        // Show relevant fields
+        if (type === 'email') {
+            document.getElementById('emailFields').style.display = 'block';
+            document.getElementById('subjectGroup').style.display = 'block';
+        } else if (type === 'sms') {
+            document.getElementById('smsFields').style.display = 'block';
+            document.getElementById('subjectGroup').style.display = 'none';
+        } else if (type === 'push') {
+            document.getElementById('pushFields').style.display = 'block';
+            document.getElementById('subjectGroup').style.display = 'block';
+        }
+        
+        updateCharCount();
+    }
+    
+    // Toggle schedule fields
+    function toggleSchedule() {
+        const schedule = document.getElementById('schedule');
+        const scheduleFields = document.getElementById('scheduleFields');
+        scheduleFields.style.display = schedule.checked ? 'block' : 'none';
+        
+        // Update status if schedule is checked
+        if (schedule.checked) {
+            document.getElementById('status').value = 'scheduled';
+        }
+    }
+    
+    // Update character count
+    function updateCharCount() {
+        const message = document.getElementById('message').value;
+        const charCount = message.length;
+        document.getElementById('charCounter').textContent = `Characters: ${charCount}`;
+    }
+    
+    // Show/hide SACCO and custom recipient fields
+    document.getElementById('send_to').addEventListener('change', function() {
+        const saccoGroup = document.getElementById('saccoGroup');
+        const customGroup = document.getElementById('customGroup');
+        
+        if (this.value === 'specific_sacco') {
+            saccoGroup.style.display = 'block';
+            customGroup.style.display = 'none';
+        } else if (this.value === 'custom') {
+            saccoGroup.style.display = 'none';
+            customGroup.style.display = 'block';
+        } else {
+            saccoGroup.style.display = 'none';
+            customGroup.style.display = 'none';
+        }
+    });
+    
+    // Update submit button text based on status
+    document.getElementById('status').addEventListener('change', function() {
+        const submitBtn = document.getElementById('submitBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        
+        if (this.value === 'scheduled') {
+            submitBtn.innerHTML = '<i class="fas fa-calendar-check fa-fw mr-1"></i> Update Schedule';
+            sendBtn.style.display = 'none';
+        } else if (this.value === 'ready') {
+            submitBtn.innerHTML = '<i class="fas fa-save fa-fw mr-1"></i> Update & Mark Ready';
+            sendBtn.style.display = 'inline-block';
+        } else {
+            submitBtn.innerHTML = '<i class="fas fa-save fa-fw mr-1"></i> Update Notification';
+            sendBtn.style.display = 'inline-block';
+        }
+    });
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set initial state based on notification data
+        const sendTo = document.getElementById('send_to').value;
+        const saccoGroup = document.getElementById('saccoGroup');
+        const customGroup = document.getElementById('customGroup');
+        
+        if (sendTo === 'specific_sacco') {
+            saccoGroup.style.display = 'block';
+        } else if (sendTo === 'custom') {
+            customGroup.style.display = 'block';
+        }
+        
+        // Set schedule fields
+        const schedule = document.getElementById('schedule');
+        const scheduleFields = document.getElementById('scheduleFields');
+        if (notification.scheduled_for) {
+            schedule.checked = true;
+            scheduleFields.style.display = 'block';
+        }
+        
+        updateFormForType();
+        updateCharCount();
+    });
+</script>
+{% endblock %}

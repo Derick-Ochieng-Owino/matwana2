@@ -1,0 +1,481 @@
+{% extends 'admin/base.html' %}
+{% block title %}Create Notification{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">
+            <i class="fas fa-bell fa-fw mr-2"></i>Create Notification
+        </h1>
+        <a href="{% 'manage_notifications' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left fa-fw mr-1"></i> Back
+        </a>
+    </div>
+
+    <!-- Flash Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Create Notification Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Notification Details</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{% 'admin_add_notification' %}">
+                        <!-- Notification Type -->
+                        <div class="form-group">
+                            <label for="type">Notification Type *</label>
+                            <select class="form-control" id="type" name="type" required 
+                                    onchange="updateFormForType()">
+                                <option value="">Select Type</option>
+                                <option value="email">Email</option>
+                                <option value="sms">SMS</option>
+                                <option value="push">Push Notification</option>
+                            </select>
+                        </div>
+
+                        <!-- Subject/Title -->
+                        <div class="form-group" id="subjectGroup">
+                            <label for="subject">Subject *</label>
+                            <input type="text" class="form-control" id="subject" name="subject" required>
+                        </div>
+
+                        <!-- Message Content -->
+                        <div class="form-group">
+                            <label for="message">Message Content *</label>
+                            <textarea class="form-control" id="message" name="message" 
+                                      rows="6" required oninput="updateCharCount()"></textarea>
+                            <small class="form-text text-muted" id="charCounter">
+                                Characters: 0
+                            </small>
+                        </div>
+
+                        <!-- Recipients -->
+                        <div class="form-group">
+                            <label for="send_to">Send To *</label>
+                            <select class="form-control" id="send_to" name="send_to" required>
+                                <option value="">Select Recipients</option>
+                                <option value="all">All Users (Passengers, Drivers, SACCO Admins)</option>
+                                <option value="passengers">Passengers Only</option>
+                                <option value="drivers">Drivers Only</option>
+                                <option value="sacco_admins">SACCO Admins Only</option>
+                                <option value="specific_sacco">Specific SACCO Members</option>
+                                <option value="custom">Custom List</option>
+                            </select>
+                        </div>
+
+                        <!-- SACCO Selection (Conditional) -->
+                        <div class="form-group" id="saccoGroup" style="display: none;">
+                            <label for="sacco_id">Select SACCO</label>
+                            <select class="form-control" id="sacco_id" name="sacco_id">
+                                <option value="">Select SACCO</option>
+                                {% for sacco in saccos %}
+                                    <option value="{{ sacco.id }}">{{ sacco.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Custom Recipients (Conditional) -->
+                        <div class="form-group" id="customGroup" style="display: none;">
+                            <label for="custom_recipients">Custom Recipients (Emails/Phone Numbers)</label>
+                            <textarea class="form-control" id="custom_recipients" name="custom_recipients" 
+                                      rows="3" placeholder="Enter emails or phone numbers, separated by commas"></textarea>
+                            <small class="form-text text-muted">
+                                For emails: user@example.com, user2@example.com<br>
+                                For SMS: +254712345678, +254798765432
+                            </small>
+                        </div>
+
+                        <!-- Schedule Options -->
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" 
+                                       id="schedule" name="schedule" onchange="toggleSchedule()">
+                                <label class="form-check-label" for="schedule">
+                                    Schedule for later delivery
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Schedule Fields (Conditional) -->
+                        <div id="scheduleFields" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="scheduled_for">Schedule Date & Time *</label>
+                                        <input type="datetime-local" class="form-control" id="scheduled_for" 
+                                               name="scheduled_for" min="{{ now }}">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="timezone">Timezone</label>
+                                        <select class="form-control" id="timezone" name="timezone">
+                                            <option value="Africa/Nairobi" selected>East Africa Time (GMT+3)</option>
+                                            <option value="UTC">UTC</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Priority -->
+                        <div class="form-group">
+                            <label for="priority">Priority</label>
+                            <select class="form-control" id="priority" name="priority">
+                                <option value="low">Low</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                            <small class="form-text text-muted">
+                                High priority notifications may be delivered faster and with special formatting
+                            </small>
+                        </div>
+
+                        <!-- Tags/Categories -->
+                        <div class="form-group">
+                            <label for="tags">Tags (Optional)</label>
+                            <input type="text" class="form-control" id="tags" name="tags" 
+                                   placeholder="e.g., promotion, reminder, alert">
+                            <small class="form-text text-muted">
+                                Separate tags with commas
+                            </small>
+                        </div>
+
+                        <!-- Email Specific Fields (Conditional) -->
+                        <div id="emailFields" style="display: none;">
+                            <div class="form-group">
+                                <label for="template">Email Template</label>
+                                <select class="form-control" id="template" name="template">
+                                    <option value="">Default Template</option>
+                                    <option value="promotional">Promotional</option>
+                                    <option value="transactional">Transactional</option>
+                                    <option value="newsletter">Newsletter</option>
+                                    <option value="alert">Alert</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="reply_to">Reply-To Email (Optional)</label>
+                                <input type="email" class="form-control" id="reply_to" name="reply_to">
+                            </div>
+                        </div>
+
+                        <!-- SMS Specific Fields (Conditional) -->
+                        <div id="smsFields" style="display: none;">
+                            <div class="form-group">
+                                <label for="sender_id">Sender ID (Optional)</label>
+                                <input type="text" class="form-control" id="sender_id" name="sender_id" 
+                                       maxlength="11" placeholder="e.g., SACCO">
+                                <small class="form-text text-muted">
+                                    Maximum 11 characters. Leave blank for default.
+                                </small>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle fa-fw"></i>
+                                <strong>SMS Guidelines:</strong>
+                                <ul class="mb-0 pl-3">
+                                    <li>Maximum 160 characters for single SMS</li>
+                                    <li>Messages over 160 characters will be split</li>
+                                    <li>Avoid special characters that may increase cost</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Push Notification Fields (Conditional) -->
+                        <div id="pushFields" style="display: none;">
+                            <div class="form-group">
+                                <label for="icon">Icon URL (Optional)</label>
+                                <input type="url" class="form-control" id="icon" name="icon" 
+                                       placeholder="https://example.com/icon.png">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="image">Image URL (Optional)</label>
+                                <input type="url" class="form-control" id="image" name="image" 
+                                       placeholder="https://example.com/image.jpg">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="action_url">Action URL (Optional)</label>
+                                <input type="url" class="form-control" id="action_url" name="action_url" 
+                                       placeholder="https://example.com/action">
+                                <small class="form-text text-muted">
+                                    URL to open when notification is clicked
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="form-group">
+                            <label for="status">Status *</label>
+                            <select class="form-control" id="status" name="status" required>
+                                <option value="draft" selected>Draft</option>
+                                <option value="scheduled">Schedule for Later</option>
+                                <option value="ready">Ready to Send</option>
+                            </select>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="fas fa-save fa-fw mr-1"></i> Save Notification
+                            </button>
+                            <button type="submit" name="action" value="send" class="btn btn-success" id="sendBtn">
+                                <i class="fas fa-paper-plane fa-fw mr-1"></i> Save & Send Now
+                            </button>
+                            <a href="{% url 'manage_notifications'% }" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Preview -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-eye fa-fw mr-1"></i>Preview
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="emailPreview" style="display: none;">
+                        <h6 class="font-weight-bold border-bottom pb-2">Email Preview</h6>
+                        <div class="bg-light p-3 rounded mb-3">
+                            <div class="font-weight-bold mb-1" id="previewSubject">[Subject]</div>
+                            <div class="small text-muted mb-2" id="previewRecipients">To: [Recipients]</div>
+                            <div id="previewMessage" class="small">[Message content will appear here]</div>
+                        </div>
+                    </div>
+                    
+                    <div id="smsPreview" style="display: none;">
+                        <h6 class="font-weight-bold border-bottom pb-2">SMS Preview</h6>
+                        <div class="bg-light p-3 rounded mb-3">
+                            <div class="text-center mb-2">
+                                <i class="fas fa-comment-sms fa-2x text-primary"></i>
+                            </div>
+                            <div class="small" id="previewSMS">[SMS message will appear here]</div>
+                            <div class="text-right mt-2">
+                                <small class="text-muted" id="smsCharCount">0/160 chars</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="pushPreview" style="display: none;">
+                        <h6 class="font-weight-bold border-bottom pb-2">Push Notification Preview</h6>
+                        <div class="bg-light p-3 rounded mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="mr-2">
+                                    <i class="fas fa-bell fa-lg text-primary"></i>
+                                </div>
+                                <div>
+                                    <div class="font-weight-bold" id="previewPushTitle">[Title]</div>
+                                    <div class="small" id="previewPushMessage">[Message]</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info small">
+                        <i class="fas fa-lightbulb fa-fw mr-1"></i>
+                        <strong>Tip:</strong> The preview updates automatically as you type.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statistics Card -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar fa-fw mr-1"></i>Notification Stats
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="small">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Email Open Rate:</span>
+                            <strong>{{ stats.email_open_rate }}%</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>SMS Delivery Rate:</span>
+                            <strong>{{ stats.sms_delivery_rate }}%</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Push Click Rate:</span>
+                            <strong>{{ stats.push_click_rate }}%</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Avg. Response Time:</span>
+                            <strong>{{ stats.avg_response_time }} mins</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Total Sent Today:</span>
+                            <strong>{{ stats.sent_today }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Update form based on notification type
+    function updateFormForType() {
+        const type = document.getElementById('type').value;
+        
+        // Hide all type-specific fields
+        document.getElementById('emailFields').style.display = 'none';
+        document.getElementById('smsFields').style.display = 'none';
+        document.getElementById('pushFields').style.display = 'none';
+        
+        // Hide all previews
+        document.getElementById('emailPreview').style.display = 'none';
+        document.getElementById('smsPreview').style.display = 'none';
+        document.getElementById('pushPreview').style.display = 'none';
+        
+        // Show relevant fields and preview
+        if (type === 'email') {
+            document.getElementById('emailFields').style.display = 'block';
+            document.getElementById('emailPreview').style.display = 'block';
+            document.getElementById('subjectGroup').style.display = 'block';
+        } else if (type === 'sms') {
+            document.getElementById('smsFields').style.display = 'block';
+            document.getElementById('smsPreview').style.display = 'block';
+            document.getElementById('subjectGroup').style.display = 'none';
+        } else if (type === 'push') {
+            document.getElementById('pushFields').style.display = 'block';
+            document.getElementById('pushPreview').style.display = 'block';
+            document.getElementById('subjectGroup').style.display = 'block';
+        }
+        
+        updateCharCount();
+        updatePreview();
+    }
+    
+    // Toggle schedule fields
+    function toggleSchedule() {
+        const schedule = document.getElementById('schedule');
+        const scheduleFields = document.getElementById('scheduleFields');
+        scheduleFields.style.display = schedule.checked ? 'block' : 'none';
+        
+        // Update status if schedule is checked
+        if (schedule.checked) {
+            document.getElementById('status').value = 'scheduled';
+        }
+    }
+    
+    // Update character count and preview
+    function updateCharCount() {
+        const message = document.getElementById('message').value;
+        const charCount = message.length;
+        document.getElementById('charCounter').textContent = `Characters: ${charCount}`;
+        
+        // Update SMS character count in preview
+        const smsCharCount = document.getElementById('smsCharCount');
+        if (smsCharCount) {
+            smsCharCount.textContent = `${charCount}/160 chars`;
+            if (charCount > 160) {
+                smsCharCount.className = 'text-danger';
+            } else if (charCount > 140) {
+                smsCharCount.className = 'text-warning';
+            } else {
+                smsCharCount.className = 'text-muted';
+            }
+        }
+        
+        updatePreview();
+    }
+    
+    // Update preview based on form values
+    function updatePreview() {
+        const type = document.getElementById('type').value;
+        const subject = document.getElementById('subject').value || '[Subject]';
+        const message = document.getElementById('message').value || '[Message content will appear here]';
+        
+        if (type === 'email') {
+            document.getElementById('previewSubject').textContent = subject;
+            document.getElementById('previewMessage').textContent = message;
+            
+            // Update recipients preview
+            const sendTo = document.getElementById('send_to').value;
+            let recipientsText = '';
+            switch(sendTo) {
+                case 'all': recipientsText = 'All Users'; break;
+                case 'passengers': recipientsText = 'Passengers Only'; break;
+                case 'drivers': recipientsText = 'Drivers Only'; break;
+                case 'sacco_admins': recipientsText = 'SACCO Admins Only'; break;
+                default: recipientsText = 'Custom Recipients';
+            }
+            document.getElementById('previewRecipients').textContent = `To: ${recipientsText}`;
+        } else if (type === 'sms') {
+            document.getElementById('previewSMS').textContent = message;
+        } else if (type === 'push') {
+            document.getElementById('previewPushTitle').textContent = subject;
+            document.getElementById('previewPushMessage').textContent = message;
+        }
+    }
+    
+    // Show/hide SACCO and custom recipient fields
+    document.getElementById('send_to').addEventListener('change', function() {
+        const saccoGroup = document.getElementById('saccoGroup');
+        const customGroup = document.getElementById('customGroup');
+        
+        if (this.value === 'specific_sacco') {
+            saccoGroup.style.display = 'block';
+            customGroup.style.display = 'none';
+        } else if (this.value === 'custom') {
+            saccoGroup.style.display = 'none';
+            customGroup.style.display = 'block';
+        } else {
+            saccoGroup.style.display = 'none';
+            customGroup.style.display = 'none';
+        }
+        
+        updatePreview();
+    });
+    
+    // Update preview when form changes
+    document.getElementById('subject').addEventListener('input', updatePreview);
+    document.getElementById('message').addEventListener('input', updateCharCount);
+    document.getElementById('send_to').addEventListener('change', updatePreview);
+    
+    // Update submit button text based on status
+    document.getElementById('status').addEventListener('change', function() {
+        const submitBtn = document.getElementById('submitBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        
+        if (this.value === 'scheduled') {
+            submitBtn.innerHTML = '<i class="fas fa-calendar-check fa-fw mr-1"></i> Schedule Notification';
+            sendBtn.style.display = 'none';
+        } else if (this.value === 'ready') {
+            submitBtn.innerHTML = '<i class="fas fa-save fa-fw mr-1"></i> Save & Mark Ready';
+            sendBtn.style.display = 'inline-block';
+        } else {
+            submitBtn.innerHTML = '<i class="fas fa-save fa-fw mr-1"></i> Save Notification';
+            sendBtn.style.display = 'inline-block';
+        }
+    });
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateFormForType();
+        updateCharCount();
+    });
+</script>
+{% endblock %}

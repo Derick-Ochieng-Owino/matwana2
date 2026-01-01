@@ -1,0 +1,519 @@
+{% extends 'admin/base.html' %}
+{% load static %}
+
+{% block title %}Manage Notifications{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">
+            <i class="fas fa-bell fa-fw mr-2"></i>Manage Notifications
+        </h1>
+        <div>
+            <a href="{% url 'admin_add_notification' %}" class="btn btn-primary">
+                <i class="fas fa-plus fa-fw mr-1"></i> Create Notification
+            </a>
+            <button class="btn btn-outline-primary" data-toggle="modal" data-target="#broadcastModal">
+                <i class="fas fa-broadcast-tower fa-fw mr-1"></i> Broadcast
+            </button>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Notifications
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_notifications }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-bell fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Sent Today
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.sent_today }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-paper-plane fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Scheduled
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.scheduled }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Avg. Open Rate
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.avg_open_rate }}%</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h6 class="font-weight-bold text-primary mb-3">Quick Templates</h6>
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <button class="btn btn-outline-primary btn-block" 
+                                    onclick="fillTemplate('trip_reminder')">
+                                <i class="fas fa-calendar-alt fa-fw mr-1"></i> Trip Reminder
+                            </button>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <button class="btn btn-outline-success btn-block" 
+                                    onclick="fillTemplate('payment_confirmation')">
+                                <i class="fas fa-money-check-alt fa-fw mr-1"></i> Payment Confirmation
+                            </button>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <button class="btn btn-outline-warning btn-block" 
+                                    onclick="fillTemplate('maintenance_alert')">
+                                <i class="fas fa-exclamation-triangle fa-fw mr-1"></i> Maintenance Alert
+                            </button>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <button class="btn btn-outline-info btn-block" 
+                                    onclick="fillTemplate('promotion')">
+                                <i class="fas fa-percentage fa-fw mr-1"></i> Promotion
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">All Notifications</h6>
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" 
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-filter fa-fw mr-1"></i> Filter
+                </button>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" href="{% url 'admin_manage_notifications' %}">All</a>
+                    <a class="dropdown-item" href="{% url 'admin_manage_notifications' %}?type=email">Email</a>
+                    <a class="dropdown-item" href="{% url 'admin_manage_notifications' %}?type=sms">SMS</a>
+                    <a class="dropdown-item" href="{% url 'admin_manage_notifications' %}?type=push">Push</a>
+                    <a class="dropdown-item" href="{% url 'admin_manage_notifications' %}?status=sent">Sent</a>
+                    <a class="dropdown-item" href="{% url 'admin_manage_notifications' %}?status=scheduled">Scheduled</a>
+                    <a class="dropdown-item" href="{% url 'admin_manage_notifications' %}?status=draft">Drafts</a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Subject/Title</th>
+                            <th>Type</th>
+                            <th>Recipients</th>
+                            <th>Status</th>
+                            <th>Sent/Scheduled</th>
+                            <th>Open Rate</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for notification in notifications %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <strong>{{ notification.subject }}</strong><br>
+                                <small class="text-muted">
+                                    {{ notification.message|slice:":50" }}{% if notification.message|length > 50 %}...{% endif %}
+                                </small>
+                            </td>
+                            <td>
+                                {% if notification.type == 'email' %}
+                                    <span class="badge badge-primary">{{ notification.type|upper }}</span>
+                                {% elif notification.type == 'sms' %}
+                                    <span class="badge badge-success">{{ notification.type|upper }}</span>
+                                {% elif notification.type == 'push' %}
+                                    <span class="badge badge-info">{{ notification.type|upper }}</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">{{ notification.type|upper }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if notification.send_to == 'all' %}
+                                    <span class="badge badge-primary">All Users</span>
+                                {% elif notification.send_to == 'passengers' %}
+                                    <span class="badge badge-success">Passengers</span>
+                                {% elif notification.send_to == 'drivers' %}
+                                    <span class="badge badge-warning">Drivers</span>
+                                {% elif notification.send_to == 'sacco_admins' %}
+                                    <span class="badge badge-info">SACCO Admins</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">Custom</span>
+                                {% endif %}
+                                <br>
+                                <small>{{ notification.recipient_count }} recipients</small>
+                            </td>
+                            <td>
+                                {% if notification.status == 'sent' %}
+                                    <span class="badge badge-success">{{ notification.status|title }}</span>
+                                {% elif notification.status == 'scheduled' %}
+                                    <span class="badge badge-warning">{{ notification.status|title }}</span>
+                                {% elif notification.status == 'draft' %}
+                                    <span class="badge badge-secondary">{{ notification.status|title }}</span>
+                                {% else %}
+                                    <span class="badge badge-danger">{{ notification.status|title }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if notification.status == 'sent' %}
+                                    {{ notification.sent_at|date:"Y-m-d" }}<br>
+                                    <strong>{{ notification.sent_at|date:"H:i" }}</strong>
+                                {% elif notification.status == 'scheduled' %}
+                                    {{ notification.scheduled_for|date:"Y-m-d" }}<br>
+                                    <strong>{{ notification.scheduled_for|date:"H:i" }}</strong>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if notification.type == 'email' and notification.stats.open_rate %}
+                                    <div class="progress" style="height: 5px;">
+                                        <div class="progress-bar 
+                                            {% if notification.stats.open_rate > 50 %}
+                                                bg-success
+                                            {% elif notification.stats.open_rate > 20 %}
+                                                bg-warning
+                                            {% else %}
+                                                bg-danger
+                                            {% endif %}" 
+                                             role="progressbar" 
+                                             style="width: {{ notification.stats.open_rate }}%">
+                                        </div>
+                                    </div>
+                                    <small>{{ notification.stats.open_rate }}%</small>
+                                {% elif notification.type == 'email' %}
+                                    <span class="text-muted">-</span>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'edit_notification' notification.id %}" 
+                                       class="btn btn-info" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'view_notification' notification.id %}" 
+                                       class="btn btn-primary" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if notification.status == 'draft' or notification.status == 'scheduled' %}
+                                        <button type="button" class="btn btn-success" 
+                                                data-toggle="modal" data-target="#sendModal{{ notification.id }}"
+                                                title="Send Now">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-danger" 
+                                            data-toggle="modal" data-target="#deleteModal{{ notification.id }}"
+                                            title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Send Now Modal -->
+                        {% if notification.status == 'draft' or notification.status == 'scheduled' %}
+                        <div class="modal fade" id="sendModal{{ notification.id }}" tabindex="-1" role="dialog">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Send Notification</h5>
+                                        <button type="button" class="close" data-dismiss="modal">
+                                            <span>&times;</span>
+                                        </button>
+                                    </div>
+                                    <form method="POST" action="{% url 'send_notification' notification.id %}">
+                                        {% csrf_token %}
+                                        <div class="modal-body">
+                                            <p>Send notification <strong>"{{ notification.subject }}"</strong> now?</p>
+                                            <div class="alert alert-info">
+                                                <strong>Details:</strong><br>
+                                                Type: {{ notification.type|upper }}<br>
+                                                Recipients: {{ notification.recipient_count }} users<br>
+                                                Status: {{ notification.status|title }}
+                                            </div>
+                                            {% if notification.status == 'scheduled' %}
+                                            <div class="form-group">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" 
+                                                           id="cancel_schedule{{ notification.id }}" name="cancel_schedule">
+                                                    <label class="form-check-label" for="cancel_schedule{{ notification.id }}">
+                                                        Cancel scheduled sending after this
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-success">Send Now</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Delete Modal -->
+                        <div class="modal fade" id="deleteModal{{ notification.id }}" tabindex="-1" role="dialog">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Confirm Delete</h5>
+                                        <button type="button" class="close" data-dismiss="modal">
+                                            <span>&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Are you sure you want to delete notification <strong>"{{ notification.subject }}"</strong>?</p>
+                                        <p class="text-danger"><small>This action cannot be undone.</small></p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                        <form action="{% url 'delete_notification' notification.id %}" method="POST" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center">No notifications found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Broadcast Modal -->
+    <div class="modal fade" id="broadcastModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Broadcast Message</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <form method="POST" action="{% url 'broadcast_message' %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="broadcast_type">Message Type *</label>
+                                    <select class="form-control" id="broadcast_type" name="broadcast_type" required>
+                                        <option value="">Select Type</option>
+                                        <option value="sms">SMS</option>
+                                        <option value="email">Email</option>
+                                        <option value="push">Push Notification</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="broadcast_audience">Audience *</label>
+                                    <select class="form-control" id="broadcast_audience" name="broadcast_audience" required>
+                                        <option value="">Select Audience</option>
+                                        <option value="all">All Users</option>
+                                        <option value="passengers">Passengers Only</option>
+                                        <option value="drivers">Drivers Only</option>
+                                        <option value="sacco_admins">SACCO Admins Only</option>
+                                        <option value="specific_sacco">Specific SACCO</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="sacco_select" style="display: none;">
+                            <div class="form-group">
+                                <label for="sacco_id">Select SACCO</label>
+                                <select class="form-control" id="sacco_id" name="sacco_id">
+                                    <option value="">Select SACCO</option>
+                                    {% for sacco in saccos %}
+                                        <option value="{{ sacco.id }}">{{ sacco.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="broadcast_subject">Subject *</label>
+                            <input type="text" class="form-control" id="broadcast_subject" 
+                                   name="broadcast_subject" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="broadcast_message">Message *</label>
+                            <textarea class="form-control" id="broadcast_message" 
+                                      name="broadcast_message" rows="5" required></textarea>
+                            <small class="form-text text-muted" id="charCounter">Characters: 0</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" 
+                                       id="schedule_broadcast" name="schedule_broadcast">
+                                <label class="form-check-label" for="schedule_broadcast">
+                                    Schedule for later
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div id="schedule_fields" style="display: none;">
+                            <div class="form-group">
+                                <label for="schedule_time">Schedule Time *</label>
+                                <input type="datetime-local" class="form-control" id="schedule_time" 
+                                       name="schedule_time" min="{{ now|date:'Y-m-d\\TH:i' }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Send Broadcast</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Template filling function
+    function fillTemplate(templateType) {
+        const templates = {
+            'trip_reminder': {
+                subject: 'Trip Reminder - Your Journey Tomorrow',
+                message: 'Dear passenger,\n\nThis is a reminder for your trip tomorrow. Please arrive at the station 30 minutes before departure.\n\nSafe travels!\n\nYour Sacco Team'
+            },
+            'payment_confirmation': {
+                subject: 'Payment Confirmed - Thank You!',
+                message: 'Dear passenger,\n\nYour payment has been confirmed. Your booking is now complete.\n\nThank you for choosing our service.\n\nYour Sacco Team'
+            },
+            'maintenance_alert': {
+                subject: 'Important: Vehicle Maintenance Alert',
+                message: 'Dear passengers,\n\nPlease note that vehicle maintenance is scheduled. Some trips may be affected.\n\nWe apologize for any inconvenience.\n\nYour Sacco Team'
+            },
+            'promotion': {
+                subject: 'Special Offer! 20% Off Your Next Trip',
+                message: 'Dear valued passenger,\n\nEnjoy 20% off your next trip with us! Use code TRAVEL20 when booking.\n\nOffer valid until end of month.\n\nYour Sacco Team'
+            }
+        };
+        
+        const template = templates[templateType];
+        if (template) {
+            document.getElementById('broadcast_subject').value = template.subject;
+            document.getElementById('broadcast_message').value = template.message;
+            updateCharCount();
+            $('#broadcastModal').modal('show');
+        }
+    }
+    
+    // Character counter for SMS
+    function updateCharCount() {
+        const message = document.getElementById('broadcast_message').value;
+        const charCount = message.length;
+        document.getElementById('charCounter').textContent = `Characters: ${charCount}`;
+        
+        // SMS character limit warning
+        const type = document.getElementById('broadcast_type').value;
+        if (type === 'sms' && charCount > 160) {
+            document.getElementById('charCounter').className = 'form-text text-danger';
+        } else {
+            document.getElementById('charCounter').className = 'form-text text-muted';
+        }
+    }
+    
+    // Show/hide SACCO selection
+    document.getElementById('broadcast_audience').addEventListener('change', function() {
+        const saccoSelect = document.getElementById('sacco_select');
+        saccoSelect.style.display = this.value === 'specific_sacco' ? 'block' : 'none';
+    });
+    
+    // Show/hide schedule fields
+    document.getElementById('schedule_broadcast').addEventListener('change', function() {
+        const scheduleFields = document.getElementById('schedule_fields');
+        scheduleFields.style.display = this.checked ? 'block' : 'none';
+    });
+    
+    // Initialize character counter
+    document.getElementById('broadcast_message').addEventListener('input', updateCharCount);
+    document.getElementById('broadcast_type').addEventListener('change', updateCharCount);
+    updateCharCount();
+</script>
+{% endblock %}

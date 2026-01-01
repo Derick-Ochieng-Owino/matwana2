@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'admin/base.html' %}
 {% block title %}Add New Matatu{% endblock %}
 
 {% block content %}
@@ -8,24 +8,22 @@
         <h1 class="h3 text-gray-800">
             <i class="fas fa-bus fa-fw mr-2"></i>Add New Matatu
         </h1>
-        <a href="{{ url_for('manage_matatus') }}" class="btn btn-secondary">
+        <a href="{% url 'manage_matatus' %}" class="btn btn-secondary">
             <i class="fas fa-arrow-left fa-fw mr-1"></i> Back
         </a>
     </div>
 
     <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    {% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    {% endfor %}
+    {% endif %}
 
     <!-- Add Matatu Form -->
     <div class="row">
@@ -35,7 +33,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Matatu Information</h6>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('add_matatu') }}">
+                    <form method="POST" action="{% add_matatu'%}">
                         <!-- Registration Details -->
                         <div class="row">
                             <div class="col-md-6">
@@ -156,7 +154,7 @@
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-plus fa-fw mr-1"></i> Add Matatu
                             </button>
-                            <a href="{{ url_for('manage_matatus') }}" class="btn btn-secondary">Cancel</a>
+                            <a href="{% url 'manage_matatus' %}" class="btn btn-secondary">Cancel</a>
                         </div>
                     </form>
                 </div>
